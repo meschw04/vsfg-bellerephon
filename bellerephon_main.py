@@ -286,7 +286,6 @@ def atom_analysis(header,body):
                                    [Raman_Tensor_Table_AB[i],Raman_Tensor_Table_BB[i],Raman_Tensor_Table_BC[i]],\
                                    [Raman_Tensor_Table_AC[i],Raman_Tensor_Table_BC[i],Raman_Tensor_Table_CC[i]]])
     
-    #Iir1mode=Table[ Sum[EigenVectorsHam[[i,j]]cR[[j]],{j,LH}],{i,LH}];
     Iir1mode = []
     for k in range(0,len(eigenvectors)):
         t1 = 0
@@ -301,7 +300,6 @@ def atom_analysis(header,body):
         Iir1mode.append([t1,t2,t3])
     
     
-    #Iir1modeAbs=Table[(Norm[Sum[ EigenVectorsHam[[i,j]]cR[[j]],{j,LH}]])^2,{i,LH}];
     Iir1modeAbs = []
     for k in range(0,len(eigenvectors)): ###i!!!
         fff = []
@@ -343,8 +341,6 @@ def ir_spectrum_compute(omega,eigenvalues,Iir1modeAbs):
     IR_Spectrum_Omega = sum(q)
     return IR_Spectrum_Omega
 
-#IRspec=Flatten[Table[IRspectrum[\[Omega]],{\[Omega],1550,1750,0.5}]];
-#OmegaVal=Table[\[Omega],{\[Omega],1550,1750,0.5}];
 IRspec = []
 for i in range(3100,3501):
     IRspec.append(ir_spectrum_compute(0.5*float(i),eigenvalues,Iir1modeAbs))
@@ -358,11 +354,6 @@ plt.plot(OmegaVal,IRspec)
 plt.xlabel('Wavelength (nm)')
 plt.ylabel('Intensity (normalized)')
 plt.show()
-### LATER ON, PIPE OUT A CSV WITH OMEGAVAL, IRSPEC
-
-#Iraman1mode=Table[Sum[EigenVectorsHam[[i,j]]RamanTensor[[j]],{j, LH}],{i,LH}];
-#Iraman1modeIsotropic=Table[1/9 (Tr[Sum[EigenVectorsHam[[i,j]]RamanTensor[[j]],{j, LH}]])^2 ,{i,LH}];
-
 
 Iraman1mode = []
 Iraman1modeIsotropic= []
@@ -391,9 +382,6 @@ for k in range(0,len(eigenvectors)): #row of eigenvector matrix
     Iraman1mode.append([[a,b,c],[d,e,f],[g,h,i]])
     Iraman1modeIsotropic.append(((a*e*i)**2)/9.0) #a*e*i = Trace of the matrix
 
-#Iraman1modeAnisotropic=Table[ 1/2 (  ( Iraman1mode[[i,1,1]]- Iraman1mode[[i,2,2]] )^2  + (Iraman1mode[[i,2,2]]- Iraman1mode[[i,3,3]])^2 +( Iraman1mode[[i,3,3]]- Iraman1mode[[i,1,1]] )^2)+
-#3/4 (  ( Iraman1mode[[i,1,2]]- Iraman1mode[[i,2,1]] )^2  + (Iraman1mode[[i,2,3]]- Iraman1mode[[i,3,2]])^2 +( Iraman1mode[[i,3,1]]- Iraman1mode[[i,1,3]] )^2 ),{i,LH}];
-#
 Iraman1modeAnisotropic = [] #Maybe want to incorporate this into the above code block later...
 for i in Iraman1mode:
     tmp1 = .5*(i[0][0]-i[1][1])**2
@@ -407,8 +395,6 @@ for i in Iraman1mode:
 
 Omega_offset_IR = 0.0
 
-#RamanspectrumIsotropic[\[Omega]_,\[CapitalGamma]Raman_]:=Sum[(Iraman1modeIsotropic[[i]](\[CapitalGamma]Raman/Pi))/((\[Omega]-EigenValuesHam[[i]]-\[Omega]offsetIR)^2+ \[CapitalGamma]Raman^2),{i,LH}]
-#RamanspectrumAnisotropic[\[Omega]_,\[CapitalGamma]Raman_]:=Sum[(Iraman1modeAnisotropic[[i]](\[CapitalGamma]Raman/Pi))/((\[Omega]-EigenValuesHam[[i]]-\[Omega]offsetIR)^2+ \[CapitalGamma]Raman^2),{i,LH}]
 
 def Raman_Spectrum_Isotropic(omega,Gamma_Raman):
     term = 0.0
@@ -425,7 +411,6 @@ def Raman_Spectrum_Anisotropic(omega,Gamma_Raman):
 
 Capital_Gamma_Raman = 9.0
 
-#Isfg1mode=Table[Iraman1mode[[q,l,m]]Iir1mode[[q,n]],{q,LH},{l,3},{m,3},{n,3}];
 linspace = range(1575,1751)
 t = []
 s = []
@@ -549,13 +534,54 @@ def Chi2DeltaDistZZZEnsembleDeltaDist(theta_center): #theta_center must be in de
     returned_val = [x + mark1*y for x, y in zip(returned_val, zzz)]
     mark2 = 0.5*(math.sin(rad_t)**2)*math.cos(rad_t)
     returned_val = [x + mark2*(y+z+w) for x, y, z, w in zip(returned_val, yyz, yzy, zyy)]
-
-    
-    
+    mark3 = 0.5*(math.sin(rad_t)**2)*math.cos(rad_t)
+    returned_val = [x + mark3*(y+z+w) for x, y, z, w in zip(returned_val, xxz, xzx, zxx)]
     returned_val = [Ns*i for i in returned_val]
     return returned_val
 
+def Chi2DeltaDistXZXEnsembleDeltaDist(theta_center):
+    rad_t = theta_center*math.pi/180
+    returned_val = list(np.zeros(len(zzz)))
+    mark1 = (math.sin(rad_t)**2)*math.cos(rad_t)
+    returned_val = [x + mark1*y for x, y in zip(returned_val, zzz)]
+    mark2 = math.cos(rad_t)
+    returned_val = [x + mark2*(y+z) for x, y, z in zip(returned_val, xzx, yzy)]
+    mark3 = 0.5*math.cos(rad_t)*math.sin(rad_t)**2
+    returned_val = [x + mark3*(y+z+w) for x, y, z, w in zip(returned_val, yyz, yzy, zyy)]
+    mark4 = -0.5*math.cos(rad_t)*math.sin(rad_t)**2
+    returned_val = [x + mark4*(y+z+w) for x, y, z, w in zip(returned_val, xxz, xzx, zxx)]
+    returned_val = [0.5*Ns*i for i in returned_val]
+    return returned_val
+
+def Chi2DeltaDistXXZEnsembleDeltaDist(theta_center):
+    rad_t = theta_center*math.pi/180
+    returned_val = list(np.zeros(len(zzz)))
+    mark1 = (math.sin(rad_t)**2)*math.cos(rad_t)
+    returned_val = [x + mark1*y for x, y in zip(returned_val, zzz)]
+    mark2 = math.cos(rad_t)
+    returned_val = [x + mark2*(y+z) for x, y, z in zip(returned_val, xxz, yyz)]
+    mark3 = 0.5*(math.sin(rad_t)**2)*math.cos(rad_t)
+    returned_val = [x + mark3*(y+z+w) for x,y,z,w in zip(returned_val, yyz, yzy, zyy)]
+    mark4 = -0.5*(math.sin(rad_t)**2)*math.cos(rad_t)
+    returned_val = [x + mark4*(y+z+w) for x,y,z,w in zip(returned_val, xxz, xzx, zxx)]
+    returned_val = [0.5*Ns*i for i in returned_val]
+    return returned_val
+
+def Chi2DeltaDistZXXEnsembleDeltaDist(theta_center):
+    rad_t = theta_center*math.pi/180
+    returned_val = list(np.zeros(len(zzz)))
+    mark1 = (math.sin(rad_t)**2)*math.cos(rad_t)
+    returned_val = [x + mark1*y for x, y in zip(returned_val, zzz)]
+    mark2 = math.cos(rad_t)
+    returned_val = [x + mark2*(y+z) for x, y, z in zip(returned_val, zxx, zyy)]
+    mark3 = 0.5*(math.sin(rad_t)**2)*math.cos(rad_t)
+    returned_val = [x + mark3*(y+z+w) for x,y,z,w in zip(returned_val, yyz, yzy, zyy)]
+    mark4 = -0.5*(math.sin(rad_t)**2)*math.cos(rad_t)
+    returned_val = [x + mark4*(y+z+w) for x,y,z,w in zip(returned_val, xxz, xzx, zxx)]
+    returned_val = [0.5*Ns*i for i in returned_val]
 
 
 
-Chi2DeltaDistZZZEnsembleDeltaDist(4)
+
+
+
