@@ -102,7 +102,7 @@ def position_compare(position_nitrogen,position_carbon):
     return C_N_pairs
 
 
-header, body, chain_address = parse_pdb_file('C:\Users\Marcus\Documents\Fall 2017\sfg2\output_CHAIN_A.pdb')
+header, body, chain_address = parse_pdb_file('/Users/mschwart/vsfg-bellerephon/sfg2/output_CHAIN_A.pdb')
 
 #header, body, chain_address = parse_pdb_file('C:\Users\Marcus\Documents\Fall 2017\sfg2\output.pdb')
 
@@ -110,7 +110,7 @@ header, body, chain_address = parse_pdb_file('C:\Users\Marcus\Documents\Fall 201
 
 
 #This is the cR from the Mathematica code
-trans_dip_mom = pd.read_csv('C:\Users\Marcus\Documents\Fall 2017\sfg2\output_prepped_transdipmom_Hamm.txt',header=None)
+trans_dip_mom = pd.read_csv('/Users/mschwart/vsfg-bellerephon/sfg2/output_prepped_transdipmom_Hamm.txt',header=None)
 trans = []
 for i in trans_dip_mom[0].tolist():
     t = i.split(' ')
@@ -124,12 +124,12 @@ for i in trans_dip_mom[0].tolist():
 
 
 
-eigenvalues = pd.read_csv('C:\Users\Marcus\Documents\Fall 2017\sfg2\output_prepped_eval.txt',header=None)
+eigenvalues = pd.read_csv('/Users/mschwart/vsfg-bellerephon/sfg2/output_prepped_eval.txt',header=None)
 eig_val = []
 for i in eigenvalues[0].tolist():
     eig_val.append(float(i)+1660)
 eigenvalues = eig_val
-eigenvectors = pd.read_csv('C:\Users\Marcus\Documents\Fall 2017\sfg2\output_prepped_evec.txt',header=None)
+eigenvectors = pd.read_csv('/Users/mschwart/vsfg-bellerephon/sfg2/output_prepped_evec.txt',header=None)
 
 full_eig = []
 for i in eigenvectors[0].tolist():
@@ -579,9 +579,313 @@ def Chi2DeltaDistZXXEnsembleDeltaDist(theta_center):
     mark4 = -0.5*(math.sin(rad_t)**2)*math.cos(rad_t)
     returned_val = [x + mark4*(y+z+w) for x,y,z,w in zip(returned_val, xxz, xzx, zxx)]
     returned_val = [0.5*Ns*i for i in returned_val]
+    return returned_val
+
+
+
+Gamma_Exc = 7.5
 
 
 
 
 
+def Chi2DeltaDistXXZ(omega, theta_center, omega_offset, capital_gamma):
+    #omega is float, theta_center is list of same length as eigenvalues, 
+    #omega_offset is float, capital_gamma is float.
+    re_val = 0
+    im_val = 0
+    for j in range(0,len(eigenvalues)):
+        denom = ((eigenvalues[j]+omega_offset-omega)**2)+(Gamma_Exc+capital_gamma)**2
+        re_num = (eigenvalues[j]+omega_offset-omega)*((Gamma_Exc+capital_gamma)**0.5)*\
+                 Chi2DeltaDistXXZEnsembleDeltaDist(theta_center[j])
+        re_val = re_val+(re_num/denom)
+        im_num = ((Gamma_Exc+capital_gamma)**1.5)*\
+                 Chi2DeltaDistXXZEnsembleDeltaDist(theta_center[j])
+        im_val = im_val+(im_num/denom)
+    return (re_val,im_val)
+    
+def Chi2DeltaDistZZZ(omega, theta_center, omega_offset, capital_gamma):
+    #omega is float, theta_center is list of same length as eigenvalues, 
+    #omega_offset is float, capital_gamma is float.
+    re_val = 0
+    im_val = 0
+    for j in range(0,len(eigenvalues)):
+        denom = ((eigenvalues[j]+omega_offset-omega)**2)+(Gamma_Exc+capital_gamma)**2
+        re_num = (eigenvalues[j]+omega_offset-omega)*((Gamma_Exc+capital_gamma)**0.5)*\
+                 Chi2DeltaDistZZZEnsembleDeltaDist(theta_center[j])
+        re_val = re_val+(re_num/denom)
+        im_num = ((Gamma_Exc+capital_gamma)**1.5)*\
+                 Chi2DeltaDistZZZEnsembleDeltaDist(theta_center[j])
+        im_val = im_val+(im_num/denom)
+    return (re_val,im_val)
 
+def Chi2DeltaDistXZX(omega, theta_center, omega_offset, capital_gamma):
+    #omega is float, theta_center is list of same length as eigenvalues, 
+    #omega_offset is float, capital_gamma is float.
+    re_val = 0
+    im_val = 0
+    for j in range(0,len(eigenvalues)):
+        denom = ((eigenvalues[j]+omega_offset-omega)**2)+(Gamma_Exc+capital_gamma)**2
+        re_num = (eigenvalues[j]+omega_offset-omega)*((Gamma_Exc+capital_gamma)**0.5)*\
+                 Chi2DeltaDistXZXEnsembleDeltaDist(theta_center[j])
+        re_val = re_val+(re_num/denom)
+        im_num = ((Gamma_Exc+capital_gamma)**1.5)*\
+                 Chi2DeltaDistXZXEnsembleDeltaDist(theta_center[j])
+        im_val = im_val+(im_num/denom)
+    return (re_val,im_val)
+    
+def Chi2DeltaDistZXX(omega, theta_center, omega_offset, capital_gamma):
+    #omega is float, theta_center is list of same length as eigenvalues, 
+    #omega_offset is float, capital_gamma is float.
+    re_val = 0
+    im_val = 0
+    for j in range(0,len(eigenvalues)):
+        denom = ((eigenvalues[j]+omega_offset-omega)**2)+(Gamma_Exc+capital_gamma)**2
+        re_num = (eigenvalues[j]+omega_offset-omega)*((Gamma_Exc+capital_gamma)**0.5)*\
+                 Chi2DeltaDistZXXEnsembleDeltaDist(theta_center[j])
+        re_val = re_val+(re_num/denom)
+        im_num = ((Gamma_Exc+capital_gamma)**1.5)*\
+                 Chi2DeltaDistZXXEnsembleDeltaDist(theta_center[j])
+        im_val = im_val+(im_num/denom)
+    return (re_val,im_val)
+
+def Chi2DeltaDistZXZ(omega, theta_center, omega_offset, capital_gamma):
+    #omega is float, theta_center is list of same length as eigenvalues, 
+    #omega_offset is float, capital_gamma is float.
+    re_val = 0
+    im_val = 0
+    for j in range(0,len(eigenvalues)):
+        denom = ((eigenvalues[j]+omega_offset-omega)**2)+(Gamma_Exc+capital_gamma)**2
+        re_num = (eigenvalues[j]+omega_offset-omega)*((Gamma_Exc+capital_gamma)**0.5)*\
+                 Chi2DeltaDistZXZEnsembleDeltaDist(theta_center[j])
+        re_val = re_val+(re_num/denom)
+        im_num = ((Gamma_Exc+capital_gamma)**1.5)*\
+                 Chi2DeltaDistZXZEnsembleDeltaDist(theta_center[j])
+        im_val = im_val+(im_num/denom)
+    return (re_val,im_val)
+
+
+incIR=40*math.pi/180.0
+incVIS=36.*math.pi/180.0
+k1 = 2.*math.pi/800.0
+k2 = 2.*math.pi/6000.0
+n1SF=1.0
+n2SF=1.331
+n1VIS=1.0
+n2VIS=1.329
+n1IR=1.0
+n2IR=1.315
+Theta_Center=0.1
+Capital_Gamma=0.1
+Omega_offset=0.0
+Omega_CO=1728.0
+Capital_Gamma_CO=0.0
+fCO = 0.0
+ScaleFactorXXZ=0.043578
+Anr=0
+Phi_nr=0.0
+npSF = 1.18
+npSFCO = 1.331
+npIR = 1.18
+npIRCO = 1.315
+
+
+def Chi2DeltaDistXXZ_NR(omega, theta_center, omega_offset, capital_gamma,A_nr,Phi_nr):
+    (re,im) = Chi2DeltaDistXXZ(omega,theta_center,omega_offset,capital_gamma)
+    re = re-A_nr*math.exp(Phi_nr/math.pi)
+    return (re,im)
+    
+def Chi2DeltaDistZZZ_NR(omega, theta_center, omega_offset, capital_gamma,A_nr,Phi_nr):
+    (re,im) = Chi2DeltaDistZZZ(omega,theta_center,omega_offset,capital_gamma)
+    re = re-A_nr*math.exp(Phi_nr/math.pi)
+    return (re,im)
+
+def Chi2DeltaDistXZX_NR(omega, theta_center, omega_offset, capital_gamma,A_nr,Phi_nr):
+    (re,im) = Chi2DeltaDistXZX(omega,theta_center,omega_offset,capital_gamma)
+    re = re-A_nr*math.exp(Phi_nr/math.pi)
+    return (re,im)
+
+def Chi2DeltaDistZXX_NR(omega, theta_center, omega_offset, capital_gamma,A_nr,Phi_nr):
+    (re,im) = Chi2DeltaDistZXX(omega,theta_center,omega_offset,capital_gamma)
+    re = re-A_nr*math.exp(Phi_nr/math.pi)
+    return (re,im)
+
+def Chi2DeltaDistZXZ_NR(omega, theta_center, omega_offset, capital_gamma,A_nr,Phi_nr):
+    (re,im) = Chi2DeltaDistZXZ(omega,theta_center,omega_offset,capital_gamma)
+    re = re-A_nr*math.exp(Phi_nr/math.pi)
+    return (re,im)
+
+
+
+
+
+def Chi2DeltaDistXXZ_NR_LabFrameTotal(omega, theta_center, omega_offset, capital_gamma,A_nr,\
+                                      Phi_nr, scale_factor_XXZ):
+    (re,im) = Chi2DeltaDistXXZ(omega,theta_center,omega_offset,capital_gamma)
+    re = (scale_factor_XXZ*re)-A_nr*math.exp(Phi_nr/math.pi)
+    im = (scale_factor_XXZ*im)
+    return (re,im)
+
+def Chi2DeltaDistZZZ_NR_LabFrameTotal(omega, theta_center, omega_offset, capital_gamma,A_nr,\
+                                      Phi_nr, scale_factor_ZZZ):
+    (re,im) = Chi2DeltaDistZZZ(omega,theta_center,omega_offset,capital_gamma)
+    re = (scale_factor_ZZZ*re)-A_nr*math.exp(Phi_nr/math.pi)
+    im = (scale_factor_ZZZ*im)
+    return (re,im)
+
+def Chi2DeltaDistXZX_NR_LabFrameTotal(omega, theta_center, omega_offset, capital_gamma,A_nr,\
+                                      Phi_nr, scale_factor_XZX):
+    (re,im) = Chi2DeltaDistXZX(omega,theta_center,omega_offset,capital_gamma)
+    re = (scale_factor_XZX*re)-A_nr*math.exp(Phi_nr/math.pi)
+    im = (scale_factor_XZX*im)
+    return (re,im)
+
+def Chi2DeltaDistZXX_NR_LabFrameTotal(omega, theta_center, omega_offset, capital_gamma,A_nr,\
+                                      Phi_nr, scale_factor_ZXX):
+    (re,im) = Chi2DeltaDistZXX(omega,theta_center,omega_offset,capital_gamma)
+    re = (scale_factor_ZXX*re)-A_nr*math.exp(Phi_nr/math.pi)
+    im = (scale_factor_ZXX*im)
+    return (re,im)
+
+def Chi2DeltaDistZXZ_NR_LabFrameTotal(omega, theta_center, omega_offset, capital_gamma,A_nr,\
+                                      Phi_nr, scale_factor_ZXZ):
+    (re,im) = Chi2DeltaDistZXZ(omega,theta_center,omega_offset,capital_gamma)
+    re = (scale_factor_ZXZ*re)-A_nr*math.exp(Phi_nr/math.pi)
+    im = (scale_factor_ZXZ*im)
+    return (re,im)
+
+def ImChi2XXZ_NR_LabFrameTotal(omega,theta_center,omega_offset,capital_gamma, A_nr,\
+                               Phi_nr, scale_factor_XXZ):
+    (re,im) = Chi2DeltaDistXXZ_NR_LabFrameTotal(omega, theta_center, omega_offset,\
+                                                capital_gamma,A_nr,\
+                                                Phi_nr, scale_factor_XXZ)
+    return im
+
+def ReChi2XXZ_NR_LabFrameTotal(omega,theta_center,omega_offset,capital_gamma, A_nr,\
+                               Phi_nr, scale_factor_XXZ):
+    (re,im) = Chi2DeltaDistXXZ_NR_LabFrameTotal(omega, theta_center, omega_offset,\
+                                                capital_gamma,A_nr,\
+                                                Phi_nr, scale_factor_XXZ)
+    return re
+
+
+incSF = np.arcsin((k1*math.sin(incVIS)+k2*math.sin(incIR))/(k1+k2))
+
+def Lxx(n1,n2,inc,ref):
+    return (2*n1*math.cos(ref))/(n1*math.cos(ref) + n2*math.cos(inc))
+def Lyy(n1,n2,inc,ref):
+    return (2*n1*math.cos(inc))/(n1*math.cos(inc) + n2*math.cos(ref))
+
+def LzzSF(n1,n2,npSF, inc, ref):
+    return (2*n2*math.cos(inc))/(n1*math.cos(ref) + n2*math.cos(inc)) * (n1/npSF)**2
+def LzzVIS(n1,n2,npVIS, inc, ref):
+    return (2*n2*math.cos(inc))/(n1*math.cos(ref) + n2*math.cos(inc)) * (n1/npVIS)**2
+def LzzIR(n1,n2,npIR, inc, ref):
+    return (2*n2*math.cos(inc))/(n1*math.cos(inc) + n2*math.cos(inc)) * (n1/npIR)**2
+
+def Lx(n1,n2,inc):
+    return Lxx(n1,n2,inc,np.arcsin(n1/n2*math.sin(inc)))
+def Ly(n1,n2,inc):
+    return Lyy(n1,n2,inc,np.arcsin(n1/n2*math.sin(inc)))
+
+def LzSF(n1,n2,npSF,inc):
+    return LzzSF(n1,n2,npSF, inc,np.arcsin(n1/n2*math.sin(inc)))
+def LzVIS(n1,n2,npVIS,inc):
+    return LzzVIS(n1,n2,npVIS, inc,np.arcsin(n1/n2*math.sin(inc)))
+def LzIR(n1,n2,npIR,inc):
+    return LzzIR(n1,n2,npIR, inc,np.arcsin(n1/n2*math.sin(inc)))
+
+def Lpppp(npSF, npVIS, npIR):
+    return math.sin(incIR)*math.sin(incVIS)*math.sin(incSF)*\
+            LzSF(n1SF,n2SF,npSF,incSF)*LzVIS(n1VIS,n2VIS,npVIS,incVIS)*\
+                LzIR(n1IR,n2IR,npIR,incIR)
+print(Lpppp(1.29,1.357,1.343))
+
+def Lpssp(npIR):
+    return math.sin(incIR)*math.cos(incVIS)*math.cos(incSF)*\
+           Lx(n1SF,n2SF,incSF)*Lx(n1VIS,n2VIS,incVIS)*LzIR(n1IR,n2IR,npIR,incIR)
+print(Lpssp(1.343))
+
+def Lpsps(npVIS):
+    return -1*math.cos(incIR)*math.sin(incVIS)*math.cos(incSF)*\
+            Lx(n1SF,n2SF,incSF)*LzVIS(n1VIS,n2VIS,npVIS,incVIS)\
+              *Lx(n1IR,n2IR,incIR)
+print(Lpsps(1.357))
+
+def Lppss(npSF):
+    return math.cos(incIR)*math.cos(incVIS)*math.sin(incSF)*\
+            LzSF(n1SF,n2SF,npSF,incSF)*Lx(n1VIS,n2VIS,incVIS)*\
+                Lx(n1IR,n2IR,incIR)
+print(Lppss(1.29))
+
+def Lssp(npIR):
+    return math.sin(incIR)*Ly(n1SF,n2SF, incSF)*\
+        Ly(n1VIS,n2VIS,incVIS)*LzIR(n1IR,n2IR,npIR,incIR)
+print(Lssp(1.2))
+
+def Lsps(npVIS):
+    return math.sin(incVIS)*Ly(n1SF,n2SF, incSF)*\
+        LzVIS(n1VIS,n2VIS,npVIS,incVIS)*Ly(n1IR,n2IR,incIR)
+print(Lsps(1.2))
+
+def Lpss(npSF):
+    return math.sin(incSF)*LzSF(n1SF,n2SF,npSF,incSF)*Ly(n1VIS,n2VIS,incVIS)*Ly(n1IR,n2IR,incIR)
+print(Lpss(1.2))
+
+def Chi2DeltaDist_ppp(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr):
+    return Chi2DeltaDistXXZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)*Lpssp(npIR) + \
+        Chi2DeltaDistXZX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)*Lpsps(npVIS) + \
+        Chi2DeltaDistZXX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)*Lppss(npSF) + \
+        Chi2DeltaDistZZZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)*Lpppp(npSF,npVIS,npIR)
+                           
+def Chi2DeltaDist_ssp(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr):
+    return Chi2DeltaDistXXZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)*Lssp(npIR)
+
+def Chi2DeltaDist_sps(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr):
+    return Chi2DeltaDistXZX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)*Lsps(npVIS)
+
+def Chi2DeltaDist_pss(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr):
+    return Chi2DeltaDistZXX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)*Lpss(npSF)
+
+
+
+
+def CalculatedIntensity_PPP(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,ScaleFactor,Anr,Phi_nr):
+    return ScaleFactor*abs(Chi2DeltaDist_ppp(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr))**2
+
+def CalculatedIntensity_SSP(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,ScaleFactor,Anr,Phi_nr):
+    return ScaleFactor*abs(Chi2DeltaDist_ssp(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr))**2
+
+def CalculatedIntensity_PSS(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,ScaleFactor,Anr,Phi_nr):
+    return ScaleFactor*abs(Chi2DeltaDist_pss(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr))**2
+
+def CalculatedIntensity_SPS(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,ScaleFactor,Anr,Phi_nr):
+    return ScaleFactor*abs(Chi2DeltaDist_sps(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr))**2
+
+
+
+
+def XXZFomrulateDeltaDist(omega,theta_center,omega_offset,capital_gamma,ScaleFactorXXZ,Anr,Phi_nr):
+    return abs(Chi2DeltaDistXXZ_NR_LabFrameTotal(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,ScaleFactorXXZ))**2
+
+def XZXFomrulateDeltaDist(omega,theta_center,omega_offset,capital_gamma,ScaleFactorXZX,Anr,Phi_nr):
+    return abs(Chi2DeltaDistXZX_NR_LabFrameTotal(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,ScaleFactorXZX))**2
+
+def ZXXFomrulateDeltaDist(omega,theta_center,omega_offset,capital_gamma,ScaleFactorZXX,Anr,Phi_nr):
+    return abs(Chi2DeltaDistZXX_NR_LabFrameTotal(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,ScaleFactorZXX))**2
+
+def ZZZFomrulateDeltaDist(omega,theta_center,omega_offset,capital_gamma,ScaleFactorZZZ,Anr,Phi_nr):
+    return abs(Chi2DeltaDistZZZ_NR_LabFrameTotal(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,ScaleFactorZZZ))**2
+
+
+OmegaVAL =  [i/2.0 for i in range(3100,3501)]
+VSFGspec = [CalculatedIntensity_SSP(i,Theta_Center,Omega_offset,Capital_Gamma,\
+                                    npSF,npVIS,npIR,ScaleFactorXXZ,Anr,Phi_nr) for i in OmegaVAL]
+
+VSFGspec2 = [CalculatedIntensity_SPS(i,Theta_Center,Omega_offset,Capital_Gamma,\
+                                    npSF,npVIS,npIR,ScaleFactorXXZ,Anr,Phi_nr) for i in OmegaVAL]
+#CHECK THESE VARIABLES, MAKE SURE TO TRACE BACK THROUGH THE ORIGINAL CODE!!!
+plt.figure()
+plt.plot(OmegaVAL,VSFGspec)
+plt.plot(OmegaVAL,VSFGspec2)
+plt.show()
