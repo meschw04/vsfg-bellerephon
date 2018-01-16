@@ -79,8 +79,6 @@ def position_compare(position_nitrogen,position_carbon):
                               c_atom[2]-n_atom[2]])
     else:
         for i in range(0,len(max(position_nitrogen,position_carbon))):
-#            print(position_nitrogen)
-#            print(position_carbon)
             if abs(position_nitrogen[i]-position_carbon[i]) < 3:
                 pass
             else:
@@ -102,7 +100,7 @@ def position_compare(position_nitrogen,position_carbon):
     return C_N_pairs
 
 
-header, body, chain_address = parse_pdb_file('/Users/mschwart/vsfg-bellerephon/sfg2/output_CHAIN_A.pdb')
+header, body, chain_address = parse_pdb_file('/Users/mschwart/vsfg-bellerephon/sfg2/output_CHAIN_A.pdb') #PRepped PDB
 
 #header, body, chain_address = parse_pdb_file('C:\Users\Marcus\Documents\Fall 2017\sfg2\output.pdb')
 
@@ -110,7 +108,7 @@ header, body, chain_address = parse_pdb_file('/Users/mschwart/vsfg-bellerephon/s
 
 
 #This is the cR from the Mathematica code
-trans_dip_mom = pd.read_csv('/Users/mschwart/vsfg-bellerephon/sfg2/output_prepped_transdipmom_Hamm.txt',header=None)
+trans_dip_mom = pd.read_csv('/Users/mschwart/vsfg-bellerephon/sfg2/output_prepped_transdipmom_Hamm.txt',header=None) #Trans Dipole Moment
 trans = []
 for i in trans_dip_mom[0].tolist():
     t = i.split(' ')
@@ -123,13 +121,15 @@ for i in trans_dip_mom[0].tolist():
     trans.append(l)
 
 
-
-eigenvalues = pd.read_csv('/Users/mschwart/vsfg-bellerephon/sfg2/output_prepped_eval.txt',header=None)
+#EVAL is for the eigenvalues
+eigenvalues = pd.read_csv('/Users/mschwart/vsfg-bellerephon/sfg2/output_prepped_eval.txt',header=None) #Eigenvalues
 eig_val = []
 for i in eigenvalues[0].tolist():
     eig_val.append(float(i)+1660)
 eigenvalues = eig_val
-eigenvectors = pd.read_csv('/Users/mschwart/vsfg-bellerephon/sfg2/output_prepped_evec.txt',header=None)
+
+#EVEC is for the eigenvectors
+eigenvectors = pd.read_csv('/Users/mschwart/vsfg-bellerephon/sfg2/output_prepped_evec.txt',header=None) #Eigenvectors
 
 full_eig = []
 for i in eigenvectors[0].tolist():
@@ -588,7 +588,7 @@ Gamma_Exc = 7.5
 
 
 
-
+#ISSUE HERE!
 def Chi2DeltaDistXXZ(omega, theta_center, omega_offset, capital_gamma):
     #omega is float, theta_center is list of same length as eigenvalues, 
     #omega_offset is float, capital_gamma is float.
@@ -597,10 +597,10 @@ def Chi2DeltaDistXXZ(omega, theta_center, omega_offset, capital_gamma):
     for j in range(0,len(eigenvalues)):
         denom = ((eigenvalues[j]+omega_offset-omega)**2)+(Gamma_Exc+capital_gamma)**2
         re_num = (eigenvalues[j]+omega_offset-omega)*((Gamma_Exc+capital_gamma)**0.5)*\
-                 Chi2DeltaDistXXZEnsembleDeltaDist(theta_center[j])
+                 Chi2DeltaDistXXZEnsembleDeltaDist(theta_center)[j]
         re_val = re_val+(re_num/denom)
         im_num = ((Gamma_Exc+capital_gamma)**1.5)*\
-                 Chi2DeltaDistXXZEnsembleDeltaDist(theta_center[j])
+                 Chi2DeltaDistXXZEnsembleDeltaDist(theta_center)[j]
         im_val = im_val+(im_num/denom)
     return (re_val,im_val)
     
@@ -612,10 +612,10 @@ def Chi2DeltaDistZZZ(omega, theta_center, omega_offset, capital_gamma):
     for j in range(0,len(eigenvalues)):
         denom = ((eigenvalues[j]+omega_offset-omega)**2)+(Gamma_Exc+capital_gamma)**2
         re_num = (eigenvalues[j]+omega_offset-omega)*((Gamma_Exc+capital_gamma)**0.5)*\
-                 Chi2DeltaDistZZZEnsembleDeltaDist(theta_center[j])
+                 Chi2DeltaDistZZZEnsembleDeltaDist(theta_center)[j]
         re_val = re_val+(re_num/denom)
         im_num = ((Gamma_Exc+capital_gamma)**1.5)*\
-                 Chi2DeltaDistZZZEnsembleDeltaDist(theta_center[j])
+                 Chi2DeltaDistZZZEnsembleDeltaDist(theta_center)[j]
         im_val = im_val+(im_num/denom)
     return (re_val,im_val)
 
@@ -627,10 +627,10 @@ def Chi2DeltaDistXZX(omega, theta_center, omega_offset, capital_gamma):
     for j in range(0,len(eigenvalues)):
         denom = ((eigenvalues[j]+omega_offset-omega)**2)+(Gamma_Exc+capital_gamma)**2
         re_num = (eigenvalues[j]+omega_offset-omega)*((Gamma_Exc+capital_gamma)**0.5)*\
-                 Chi2DeltaDistXZXEnsembleDeltaDist(theta_center[j])
+                 Chi2DeltaDistXZXEnsembleDeltaDist(theta_center)[j]
         re_val = re_val+(re_num/denom)
         im_num = ((Gamma_Exc+capital_gamma)**1.5)*\
-                 Chi2DeltaDistXZXEnsembleDeltaDist(theta_center[j])
+                 Chi2DeltaDistXZXEnsembleDeltaDist(theta_center)[j]
         im_val = im_val+(im_num/denom)
     return (re_val,im_val)
     
@@ -642,13 +642,13 @@ def Chi2DeltaDistZXX(omega, theta_center, omega_offset, capital_gamma):
     for j in range(0,len(eigenvalues)):
         denom = ((eigenvalues[j]+omega_offset-omega)**2)+(Gamma_Exc+capital_gamma)**2
         re_num = (eigenvalues[j]+omega_offset-omega)*((Gamma_Exc+capital_gamma)**0.5)*\
-                 Chi2DeltaDistZXXEnsembleDeltaDist(theta_center[j])
+                 Chi2DeltaDistZXXEnsembleDeltaDist(theta_center)[j]
         re_val = re_val+(re_num/denom)
         im_num = ((Gamma_Exc+capital_gamma)**1.5)*\
-                 Chi2DeltaDistZXXEnsembleDeltaDist(theta_center[j])
+                 Chi2DeltaDistZXXEnsembleDeltaDist(theta_center)[j]
         im_val = im_val+(im_num/denom)
     return (re_val,im_val)
-
+'''
 def Chi2DeltaDistZXZ(omega, theta_center, omega_offset, capital_gamma):
     #omega is float, theta_center is list of same length as eigenvalues, 
     #omega_offset is float, capital_gamma is float.
@@ -657,13 +657,13 @@ def Chi2DeltaDistZXZ(omega, theta_center, omega_offset, capital_gamma):
     for j in range(0,len(eigenvalues)):
         denom = ((eigenvalues[j]+omega_offset-omega)**2)+(Gamma_Exc+capital_gamma)**2
         re_num = (eigenvalues[j]+omega_offset-omega)*((Gamma_Exc+capital_gamma)**0.5)*\
-                 Chi2DeltaDistZXZEnsembleDeltaDist(theta_center[j])
+                 Chi2DeltaDistZXZEnsembleDeltaDist(theta_center)[j]
         re_val = re_val+(re_num/denom)
         im_num = ((Gamma_Exc+capital_gamma)**1.5)*\
-                 Chi2DeltaDistZXZEnsembleDeltaDist(theta_center[j])
+                 Chi2DeltaDistZXZEnsembleDeltaDist(theta_center)[j]
         im_val = im_val+(im_num/denom)
     return (re_val,im_val)
-
+'''
 
 incIR=40*math.pi/180.0
 incVIS=36.*math.pi/180.0
@@ -799,70 +799,63 @@ def Lpppp(npSF, npVIS, npIR):
     return math.sin(incIR)*math.sin(incVIS)*math.sin(incSF)*\
             LzSF(n1SF,n2SF,npSF,incSF)*LzVIS(n1VIS,n2VIS,npVIS,incVIS)*\
                 LzIR(n1IR,n2IR,npIR,incIR)
-print(Lpppp(1.29,1.357,1.343))
 
 def Lpssp(npIR):
     return math.sin(incIR)*math.cos(incVIS)*math.cos(incSF)*\
            Lx(n1SF,n2SF,incSF)*Lx(n1VIS,n2VIS,incVIS)*LzIR(n1IR,n2IR,npIR,incIR)
-print(Lpssp(1.343))
 
 def Lpsps(npVIS):
     return -1*math.cos(incIR)*math.sin(incVIS)*math.cos(incSF)*\
             Lx(n1SF,n2SF,incSF)*LzVIS(n1VIS,n2VIS,npVIS,incVIS)\
               *Lx(n1IR,n2IR,incIR)
-print(Lpsps(1.357))
 
 def Lppss(npSF):
     return math.cos(incIR)*math.cos(incVIS)*math.sin(incSF)*\
             LzSF(n1SF,n2SF,npSF,incSF)*Lx(n1VIS,n2VIS,incVIS)*\
                 Lx(n1IR,n2IR,incIR)
-print(Lppss(1.29))
 
 def Lssp(npIR):
     return math.sin(incIR)*Ly(n1SF,n2SF, incSF)*\
         Ly(n1VIS,n2VIS,incVIS)*LzIR(n1IR,n2IR,npIR,incIR)
-print(Lssp(1.2))
 
 def Lsps(npVIS):
     return math.sin(incVIS)*Ly(n1SF,n2SF, incSF)*\
         LzVIS(n1VIS,n2VIS,npVIS,incVIS)*Ly(n1IR,n2IR,incIR)
-print(Lsps(1.2))
 
 def Lpss(npSF):
     return math.sin(incSF)*LzSF(n1SF,n2SF,npSF,incSF)*Ly(n1VIS,n2VIS,incVIS)*Ly(n1IR,n2IR,incIR)
-print(Lpss(1.2))
 
 def Chi2DeltaDist_ppp(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr):
-    return Chi2DeltaDistXXZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)*Lpssp(npIR) + \
-        Chi2DeltaDistXZX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)*Lpsps(npVIS) + \
-        Chi2DeltaDistZXX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)*Lppss(npSF) + \
-        Chi2DeltaDistZZZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)*Lpppp(npSF,npVIS,npIR)
+    #TAKING ONLY THE REAL PART FOR NOW!
+    return Chi2DeltaDistXXZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)[0]*Lpssp(npIR) + \
+        Chi2DeltaDistXZX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)[0]*Lpsps(npVIS) + \
+        Chi2DeltaDistZXX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)[0]*Lppss(npSF) + \
+        Chi2DeltaDistZZZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)[0]*Lpppp(npSF,npVIS,npIR)
                            
-def Chi2DeltaDist_ssp(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr):
-    return Chi2DeltaDistXXZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)*Lssp(npIR)
+def Chi2DeltaDist_ssp(omega,theta_center,omega_offset,capital_gamma,npIR,Anr,Phi_nr):
+    #TAKING ONLY THE REAL PART FOR NOW!
+    return Chi2DeltaDistXXZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)[0]*Lssp(npIR)
 
-def Chi2DeltaDist_sps(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr):
-    return Chi2DeltaDistXZX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)*Lsps(npVIS)
+def Chi2DeltaDist_sps(omega,theta_center,omega_offset,capital_gamma,npVIS,Anr,Phi_nr):
+    #TAKING ONLY THE REAL PART FOR NOW!
+    return Chi2DeltaDistXZX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)[0]*Lsps(npVIS)
 
-def Chi2DeltaDist_pss(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr):
-    return Chi2DeltaDistZXX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)*Lpss(npSF)
-
-
+def Chi2DeltaDist_pss(omega,theta_center,omega_offset,capital_gamma,npSF,Anr,Phi_nr):
+    #TAKING ONLY THE REAL PART FOR NOW!
+    return Chi2DeltaDistZXX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr)[0]*Lpss(npSF)
 
 
 def CalculatedIntensity_PPP(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,ScaleFactor,Anr,Phi_nr):
     return ScaleFactor*abs(Chi2DeltaDist_ppp(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr))**2
 
-def CalculatedIntensity_SSP(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,ScaleFactor,Anr,Phi_nr):
-    return ScaleFactor*abs(Chi2DeltaDist_ssp(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr))**2
+def CalculatedIntensity_SSP(omega,theta_center,omega_offset,capital_gamma,npIR,ScaleFactor,Anr,Phi_nr):
+    return ScaleFactor*abs(Chi2DeltaDist_ssp(omega,theta_center,omega_offset,capital_gamma,npIR,Anr,Phi_nr))**2
 
-def CalculatedIntensity_PSS(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,ScaleFactor,Anr,Phi_nr):
-    return ScaleFactor*abs(Chi2DeltaDist_pss(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr))**2
+def CalculatedIntensity_PSS(omega,theta_center,omega_offset,capital_gamma,npVIS,ScaleFactor,Anr,Phi_nr):
+    return ScaleFactor*abs(Chi2DeltaDist_pss(omega,theta_center,omega_offset,capital_gamma,npVIS,Anr,Phi_nr))**2
 
-def CalculatedIntensity_SPS(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,ScaleFactor,Anr,Phi_nr):
-    return ScaleFactor*abs(Chi2DeltaDist_sps(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr))**2
-
-
+def CalculatedIntensity_SPS(omega,theta_center,omega_offset,capital_gamma,npSF,ScaleFactor,Anr,Phi_nr):
+    return ScaleFactor*abs(Chi2DeltaDist_sps(omega,theta_center,omega_offset,capital_gamma,npSF,Anr,Phi_nr))**2
 
 
 def XXZFomrulateDeltaDist(omega,theta_center,omega_offset,capital_gamma,ScaleFactorXXZ,Anr,Phi_nr):
@@ -880,12 +873,13 @@ def ZZZFomrulateDeltaDist(omega,theta_center,omega_offset,capital_gamma,ScaleFac
 
 OmegaVAL =  [i/2.0 for i in range(3100,3501)]
 VSFGspec = [CalculatedIntensity_SSP(i,Theta_Center,Omega_offset,Capital_Gamma,\
-                                    npSF,npVIS,npIR,ScaleFactorXXZ,Anr,Phi_nr) for i in OmegaVAL]
+                                    npIR,ScaleFactorXXZ,Anr,Phi_nr) for i in OmegaVAL]
 
 VSFGspec2 = [CalculatedIntensity_SPS(i,Theta_Center,Omega_offset,Capital_Gamma,\
-                                    npSF,npVIS,npIR,ScaleFactorXXZ,Anr,Phi_nr) for i in OmegaVAL]
+                                    npIR,ScaleFactorXXZ,Anr,Phi_nr) for i in OmegaVAL]
 #CHECK THESE VARIABLES, MAKE SURE TO TRACE BACK THROUGH THE ORIGINAL CODE!!!
 plt.figure()
 plt.plot(OmegaVAL,VSFGspec)
 plt.plot(OmegaVAL,VSFGspec2)
 plt.show()
+
