@@ -59,6 +59,7 @@ def parse_pdb_file(file_name):
 
 
 def position_compare(position_nitrogen,position_carbon):
+    '''
     if position_nitrogen == position_carbon:
         C_N_pairs = []
         for i in range(0,len(position_nitrogen)-1):
@@ -69,11 +70,16 @@ def position_compare(position_nitrogen,position_carbon):
                          coord_m[2]-coord_n[2]]
             C_N_pairs.append(new_coord)
         return C_N_pairs
+    '''
+
     C_N_pairs = []
+    print(position_nitrogen,position_carbon) #N = oxygen, C = carbon
     if len(position_nitrogen) == len(position_carbon):
         for pos in range(0,len(position_nitrogen)):
             n_atom = atom_full_positions[position_nitrogen[pos]]
             c_atom = atom_full_positions[position_carbon[pos]]
+            print(n_atom,position_nitrogen[pos])
+            print(c_atom,position_carbon[pos])
             C_N_pairs.append([c_atom[0]-n_atom[0],\
                               c_atom[1]-n_atom[1],\
                               c_atom[2]-n_atom[2]])
@@ -100,15 +106,17 @@ def position_compare(position_nitrogen,position_carbon):
     return C_N_pairs
 
 
-header, body, chain_address = parse_pdb_file('/Users/mschwart/vsfg-bellerephon/sfg2/output_CHAIN_A.pdb') #PRepped PDB
+#header, body, chain_address = parse_pdb_file('/Users/mschwart/vsfg-bellerephon/sfg2/output_CHAIN_A.pdb') #PRepped PDB
 
+header, body, chain_address = parse_pdb_file('/Users/mschwart/vsfg-bellerephon/test-16jan/output.pdb') #PRepped PDB
+#print(body)
 #header, body, chain_address = parse_pdb_file('C:\Users\Marcus\Documents\Fall 2017\sfg2\output.pdb')
 
 #header, body, chain_address = parse_pdb_file('C:\Users\Marcus\Documents\Fall 2017\sfg2\output_TZ.pdb')
 
 
 #This is the cR from the Mathematica code
-trans_dip_mom = pd.read_csv('/Users/mschwart/vsfg-bellerephon/sfg2/output_prepped_transdipmom_Hamm.txt',header=None) #Trans Dipole Moment
+trans_dip_mom = pd.read_csv('/Users/mschwart/vsfg-bellerephon/test-16jan/output_prepped_transdipmom_Hamm.txt',header=None) #Trans Dipole Moment
 trans = []
 for i in trans_dip_mom[0].tolist():
     t = i.split(' ')
@@ -122,14 +130,14 @@ for i in trans_dip_mom[0].tolist():
 
 
 #EVAL is for the eigenvalues
-eigenvalues = pd.read_csv('/Users/mschwart/vsfg-bellerephon/sfg2/output_prepped_eval.txt',header=None) #Eigenvalues
+eigenvalues = pd.read_csv('/Users/mschwart/vsfg-bellerephon/test-16jan/output_prepped_eval.txt',header=None) #Eigenvalues
 eig_val = []
 for i in eigenvalues[0].tolist():
     eig_val.append(float(i)+1660)
 eigenvalues = eig_val
 
 #EVEC is for the eigenvectors
-eigenvectors = pd.read_csv('/Users/mschwart/vsfg-bellerephon/sfg2/output_prepped_evec.txt',header=None) #Eigenvectors
+eigenvectors = pd.read_csv('/Users/mschwart/vsfg-bellerephon/test-16jan/output_prepped_evec.txt',header=None) #Eigenvectors
 
 full_eig = []
 for i in eigenvectors[0].tolist():
@@ -145,6 +153,7 @@ eigenvectors = full_eig #This is a 288 * 288 matrix.
 atom_full_positions = []
 for i in body:
     atom_full_positions.append([float(i[5]),float(i[6]),float(i[7])])
+#    atom_full_positions.append([float(i[5]),float(i[6]),float(i[7])])
 
 
 
@@ -178,24 +187,31 @@ def atom_analysis(header,body):
     
         else:
             pass
+    print(position_oxygen,'\n',position_carbon)
     C_N_pairs = position_compare(position_nitrogen,position_carbon)
     C_O_pairs = position_compare(position_oxygen,position_carbon)
-
+    print(C_O_pairs)
     c = []
     for i in C_O_pairs:
         norm_int = (i[0]**2 + i[1]**2 + i[2]**2)**0.5
         new_norm = []
         for k in i:
-            new_norm.append(k/norm_int)
+            try:
+                new_norm.append(k/norm_int)
+            except ZeroDivisionError:
+                new_norm.append(0.0)
         c.append(new_norm)
-    
+    print(c)
     a = []
     for i in range(0,len(c)):
         numer = list(np.cross(c[i],C_N_pairs[i]))
         denom = (numer[0]**2+numer[1]**2+numer[2]**2)**0.5
         inter = []
         for j in numer:
-            inter.append(j/denom)
+            try:
+                inter.append(j/denom)
+            except ZeroDivisionError:
+                inter.append(0.0)
         a.append(inter)
     
     
@@ -203,7 +219,7 @@ def atom_analysis(header,body):
     for i in range(0,len(c)):
         crossed = list(np.cross(c[i],a[i]))
         b.append(crossed)
-    
+    print(b)
     Raman_tensor_1_mode = [[0.05,0.0,0.0],[0.0,0.2,0.0],[0.0,0.0,1.0]]
     
     alpha_Z = []
@@ -322,9 +338,14 @@ def atom_analysis(header,body):
 
 
 Iir1mode, Iir1modeAbs, Raman_Tensor_Table = atom_analysis(header,body)
+
+
+##CONSTANTS##
 Gamma_IR_Sticks=0.01
 Gamma_IR=10.0
 Omega_offset_IR=0.0
+
+
 
 def ir_stick_spectrum_compute(omega,eigenvalues,Iir1modeAbs):
     q = []
@@ -409,7 +430,11 @@ def Raman_Spectrum_Anisotropic(omega,Gamma_Raman):
     return term
     
 
+
+#CONSTANT!!!#
 Capital_Gamma_Raman = 9.0
+
+
 
 linspace = range(1575,1751)
 t = []
@@ -676,7 +701,8 @@ n2VIS=1.329
 n1IR=1.0
 n2IR=1.315
 Theta_Center=0.1
-Capital_Gamma=0.1
+#Capital_Gamma=0.1
+Capital_Gamma = 10.0
 Omega_offset=0.0
 Omega_CO=1728.0
 Capital_Gamma_CO=0.0
@@ -877,9 +903,10 @@ VSFGspec = [CalculatedIntensity_SSP(i,Theta_Center,Omega_offset,Capital_Gamma,\
 
 VSFGspec2 = [CalculatedIntensity_SPS(i,Theta_Center,Omega_offset,Capital_Gamma,\
                                     npIR,ScaleFactorXXZ,Anr,Phi_nr) for i in OmegaVAL]
-#CHECK THESE VARIABLES, MAKE SURE TO TRACE BACK THROUGH THE ORIGINAL CODE!!!
 plt.figure()
 plt.plot(OmegaVAL,VSFGspec)
 plt.plot(OmegaVAL,VSFGspec2)
+plt.xlabel('Wavelength')
+plt.ylabel('Intensity (Normalized)')
 plt.show()
 
