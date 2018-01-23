@@ -297,7 +297,8 @@ float ***f3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 }
 
 '''
-
+def length_3d(x,y,z):
+    return (float(x)**2 + float(y)**2 + float(z)**2)**0.5
 
 
 h = 6.62607*10**-34 #Planck Constant
@@ -337,8 +338,80 @@ q_der = [0.007716,   0.018198,  -0.026049,   0.000135]
 
 
 def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,istruct,protein):
-#    f3tensor(1,2,1,n,1,4)
-    amplitude=1e10*np.sqrt(h/(8*math.pi*math.pi*nma_freq*c*nma_mass*amu));
+    #CALCULATE THE DISPLACED ATOMS
+    amplitude=(10**10)*np.sqrt(h/(8*math.pi*math.pi*nma_freq*c*nma_mass*amu))
+    xd = [[[0]*n]*4]*2
+    yd = [[[0]*n]*4]*2
+    zd = [[[0]*n]*4]*2
+         
+    for i in range(0,n):
+        vxCOrev = x_mode[0]-x_mode[1]
+        vyCOrev = y_mode[0]-y_mode[1]
+        vzCOrev = z_mode[0]-z_mode[1]
+        
+        vxCNrev = x_mode[0]-x_mode[2]
+        vyCNrev = y_mode[0]-y_mode[2]
+        vzCNrev = z_mode[0]-z_mode[2]
+        
+        vxCO = x[i][0] - x[i][1] #Recall that x,y,z are all function inputs.
+        vyCO = y[i][0] - y[i][1]
+        vzCO = z[i][0] - z[i][1]
+        
+        vxCN = x[i][0] - x[i][2]
+        vyCN = y[i][0] - y[i][2]
+        vzCN = z[i][0] - z[i][2]
+        
+        for j in range(0,5):
+            a_CO = (x_der[j]*vxCOrev+y_der[j]*vzCOrev)/length_3d(vxCOrev,vyCOrev,vzCOrev)/length_3d(vxCO,vyCO,vzCO)
+            a_CN = (x_der[j]*vxCNrev+y_der[j]*vzCNrev)/length_3d(vxCNrev,vyCNrev,vzCNrev)/length_3d(vxCN,vyCN,vzCN)
+            if j != 0 and a_CO>0:                
+                xd[0][i][j] = x[i][j]+amplitude/2*(a_CO*vxCO+a_CN*vxCN)
+                yd[0][i][j] = y[i][j]+amplitude/2*(a_CO*vyCO+a_CN*vyCN)
+                zd[0][i][j] = z[i][j]+amplitude/2*(a_CO*vzCO+a_CN*vzCN)
+                
+                xd[1][i][j] = x[i][j]-amplitude/2*(a_CO*vxCO+a_CN*vxCN)
+                yd[1][i][j] = y[i][j]-amplitude/2*(a_CO*vyCO+a_CN*vyCN)
+                zd[1][i][j] = z[i][j]-amplitude/2*(a_CO*vzCO+a_CN*vzCN)
+            else:
+                xd[0][i][j] = x[i][j]-amplitude/2*(a_CO*vxCO+a_CN*vxCN)
+                yd[0][i][j] = y[i][j]-amplitude/2*(a_CO*vyCO+a_CN*vyCN)
+                zd[0][i][j] = z[i][j]-amplitude/2*(a_CO*vzCO+a_CN*vzCN)
+                
+                xd[1][i][j] = x[i][j]+amplitude/2*(a_CO*vxCO+a_CN*vxCN)
+                yd[1][i][j] = y[i][j]+amplitude/2*(a_CO*vyCO+a_CN*vyCN)
+                zd[1][i][j] = z[i][j]+amplitude/2*(a_CO*vzCO+a_CN*vzCN)
+        #CALCULATE TRANSITION DIPOLES
+        
+    
+        
+        
+'''
+    for (i=1;i<=n;i++)
+    {
+        vxCOrev=xmode[1]-xmode[2];vyCOrev=ymode[1]-ymode[2];vzCOrev=zmode[1]-zmode[2]; ###
+        vxCNrev=xmode[1]-xmode[3];vyCNrev=ymode[1]-ymode[3];vzCNrev=zmode[1]-zmode[3]; ###
+        vxCO=x[i][1]-x[i][2];vyCO=y[i][1]-y[i][2];vzCO=z[i][1]-z[i][2]; ###
+        vxCN=x[i][1]-x[i][3];vyCN=y[i][1]-y[i][3];vzCN=z[i][1]-z[i][3]; ###
+        
+        for (j=1;j<=4;j++)
+        {
+            aCO=(x_der[j]*vxCOrev+y_der[j]*vyCOrev+z_der[j]*vzCOrev)/length(vxCOrev,vyCOrev,vzCOrev)/length(vxCO,vyCO,vzCO);
+            aCN=(x_der[j]*vxCNrev+y_der[j]*vyCNrev+z_der[j]*vzCNrev)/length(vxCNrev,vyCNrev,vzCNrev)/length(vxCN,vyCN,vzCN);
+            if (j==1)
+            {
+                sign[i]=1;                                /*Test sign of Eigenmode by movement of C-atom)*/
+                if (aCO>0) sign[i]=-1;
+            }
+            
+            xd[1][i][j]=x[i][j]-sign[i]*Amplitude/2.*(aCO*vxCO+aCN*vxCN);
+            yd[1][i][j]=y[i][j]-sign[i]*Amplitude/2.*(aCO*vyCO+aCN*vyCN);
+            zd[1][i][j]=z[i][j]-sign[i]*Amplitude/2.*(aCO*vzCO+aCN*vzCN);
+            xd[2][i][j]=x[i][j]+sign[i]*Amplitude/2.*(aCO*vxCO+aCN*vxCN);
+            yd[2][i][j]=y[i][j]+sign[i]*Amplitude/2.*(aCO*vyCO+aCN*vyCN);
+            zd[2][i][j]=z[i][j]+sign[i]*Amplitude/2.*(aCO*vzCO+aCN*vzCN);
+        }
+    }
+'''
 
 def parameterizedB3LYP(hamiltonian,x,y,z,n,subuchange):
     return
