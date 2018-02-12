@@ -12,8 +12,13 @@ Omega_offset_IR=0.0
 Omega_offset_IR = 0.0
 #CONSTANT!!!#
 Capital_Gamma_Raman = 9.0
-OmegaVal=[x * 0.5 for x in range(3100, 3501)]
-linspace = range(1575,1751)
+
+#OmegaVal=[x * 0.5 for x in range(3100, 3501)]
+OmegaVal=[x * 0.5 for x in range(3100, 3601)]
+
+#linspace = range(1575,1751)
+linspace = range(1550,1801)
+
 Ns = 1.0
 
 #GAMMA!
@@ -51,57 +56,25 @@ npVIS = 1.18
 
 def parse_pdb_file(file_name):
     data = open(file_name,'r').read()
-    t = data.split('\n')
-    header = []
-    body = []
-    for i in t:
-        if 'ATOM' not in i:
-            header.append(i)
-        else:
-            sub_li = i.split(' ')[0:len(i.split(' '))-3]
-            new_li = []
-            for j in sub_li:
-                if len(j) == 0:
-                    pass
-                else:
-                    try:
-                        new_li.append(float(j))
-                    except ValueError:
-                        new_li.append(j)
-            if len(new_li) != 11:
-                t = []
-                t = t+new_li[:1]
-                t.append(new_li[2][:len(new_li[2])-3])
-                t.append(new_li[2][len(new_li[2])-3:])
-                t = t + new_li[3:]
-                new_li = t
-            else:
+    t = data[data.find('ATOM'):].split('\n')
+    header = t[0]
+    for i in range(0,len(t)):
+        t[i] = t[i].split(' ')
+    t = [[k for k in i if k!=''] for i in t if len(i)>5]
+#    chain_address = t[1][4]
+    for l in range(0,len(t)):
+        for j in range(0,len(t[l])):
+            try:
+                t[l][j] = float(t[l][j])
+            except ValueError:
                 pass
-            body.append(new_li)
-    cleaned = []
-    for i in body:
-        t = []
-        for j in i:
-            if j != '':
-                t.append(j)
-            else:
-                continue
-        if type(t[1]) == float:
-            del t[1]
-        if t[-1] == 0.0:
-            del t[-1]
-        if t[-1] == 1.0:
-            del t[-1]
-        if len(t) == 9:
-            t = [t[0],t[1]+t[2],t[3],t[4],t[5],t[6],t[7],t[8]]
-        cleaned.append(t)
-    body = cleaned
-    chain_address = []
-    for i in body:
-        chain_address.append(i[3])
-    chain_address = list(set(chain_address))
-    return header, body, chain_address
+    body = [i[:len(i)-3] for i in t]
 
+    for r in body:
+        del r[1]
+
+    return header,body,'A' #'A' is standing in for the chain address here!
+    
 
 def position_compare(position_nitrogen,position_carbon,atom_full_positions):
     '''
@@ -118,36 +91,41 @@ def position_compare(position_nitrogen,position_carbon,atom_full_positions):
     '''
 
     C_N_pairs = []
-    print(position_nitrogen,position_carbon) #N = oxygen, C = carbon
+#    print(position_nitrogen,position_carbon) #N = oxygen, C = carbon
     if len(position_nitrogen) == len(position_carbon):
         for pos in range(0,len(position_nitrogen)):
             n_atom = atom_full_positions[position_nitrogen[pos]]
             c_atom = atom_full_positions[position_carbon[pos]]
-            print(n_atom,position_nitrogen[pos])
-            print(c_atom,position_carbon[pos])
+#            print(n_atom,position_nitrogen[pos])
+#            print(c_atom,position_carbon[pos])
             C_N_pairs.append([c_atom[0]-n_atom[0],\
                               c_atom[1]-n_atom[1],\
                               c_atom[2]-n_atom[2]])
     else:
-        for i in range(0,len(max(position_nitrogen,position_carbon))):
-            if abs(position_nitrogen[i]-position_carbon[i]) < 3:
-                pass
-            else:
-                if len(position_carbon) < len(position_nitrogen):
-                    del position_nitrogen[i]
+        try: #Added the TRY statement here to bypass errors temporarily! Remove later when parsing gets better!
+            for i in range(0,len(max(position_nitrogen,position_carbon))):
+                if abs(position_nitrogen[i]-position_carbon[i]) < 3:
+                    pass
                 else:
-                    del position_carbon[i]
-        if len(position_nitrogen) != len(position_carbon):
-            if len(position_nitrogen) < len(position_carbon):
-                del position_carbon[-1]
-            else:
-                del position_nitrogen[-1]
-        for pos in range(0,len(position_nitrogen)):
-            n_atom = atom_full_positions[position_nitrogen[pos]]
-            c_atom = atom_full_positions[position_carbon[pos]]
-            C_N_pairs.append([c_atom[0]-n_atom[0],\
-                              c_atom[1]-n_atom[1],\
-                              c_atom[2]-n_atom[2]])
+                    if len(position_carbon) < len(position_nitrogen):
+                        del position_nitrogen[i]
+                    else:
+                        del position_carbon[i]
+            if len(position_nitrogen) != len(position_carbon):
+                if len(position_nitrogen) < len(position_carbon):
+                    del position_carbon[-1]
+                else:
+                    del position_nitrogen[-1]
+            for pos in range(0,len(position_nitrogen)):
+                n_atom = atom_full_positions[position_nitrogen[pos]]
+                c_atom = atom_full_positions[position_carbon[pos]]
+                C_N_pairs.append([c_atom[0]-n_atom[0],\
+                                  c_atom[1]-n_atom[1],\
+                                  c_atom[2]-n_atom[2]])
+        except:
+            print('')
+            print('Major parsing error in the PDB. Check it out!')
+#            print atom_full_positions
     return C_N_pairs
 
 
@@ -181,10 +159,10 @@ def atom_analysis(header,body,atom_full_positions,eigenvectors,trans):
     
         else:
             pass
-    print(position_oxygen,'\n',position_carbon)
+#    print(position_oxygen,'\n',position_carbon)
     C_N_pairs = position_compare(position_nitrogen,position_carbon,atom_full_positions)
     C_O_pairs = position_compare(position_oxygen,position_carbon,atom_full_positions)
-    print(C_O_pairs)
+#    print(C_O_pairs)
     c = []
     for i in C_O_pairs:
         norm_int = (i[0]**2 + i[1]**2 + i[2]**2)**0.5
@@ -195,7 +173,7 @@ def atom_analysis(header,body,atom_full_positions,eigenvectors,trans):
             except ZeroDivisionError:
                 new_norm.append(0.0)
         c.append(new_norm)
-    print(c)
+#    print(c)
     a = []
     for i in range(0,len(c)):
         numer = list(np.cross(c[i],C_N_pairs[i]))
@@ -213,7 +191,7 @@ def atom_analysis(header,body,atom_full_positions,eigenvectors,trans):
     for i in range(0,len(c)):
         crossed = list(np.cross(c[i],a[i]))
         b.append(crossed)
-    print(b)
+#    print(b)
     Raman_tensor_1_mode = [[0.05,0.0,0.0],[0.0,0.2,0.0],[0.0,0.0,1.0]]
     
     alpha_Z = []
@@ -295,7 +273,7 @@ def atom_analysis(header,body,atom_full_positions,eigenvectors,trans):
         Raman_Tensor_Table.append([[Raman_Tensor_Table_AA[i],Raman_Tensor_Table_AB[i],Raman_Tensor_Table_AC[i]],\
                                    [Raman_Tensor_Table_AB[i],Raman_Tensor_Table_BB[i],Raman_Tensor_Table_BC[i]],\
                                    [Raman_Tensor_Table_AC[i],Raman_Tensor_Table_BC[i],Raman_Tensor_Table_CC[i]]])
-    
+#    print(Raman_Tensor_Table)
     Iir1mode = []
     for k in range(0,len(eigenvectors)):
         t1 = 0
@@ -349,19 +327,29 @@ def ir_spectrum_compute(omega,eigenvalues,Iir1modeAbs):
 def Raman_Spectrum_Isotropic(omega,Gamma_Raman,Iraman1modeIsotropic,eigenvalues):
     term = 0.0
     for i in range(0,len(Iraman1modeIsotropic)):
-        term = term+(Iraman1modeIsotropic[i]*Gamma_Raman/math.pi)/(omega-eigenvalues[i]-Omega_offset_IR)**2
+        term = term+(Iraman1modeIsotropic[i]*Gamma_Raman/math.pi)/((omega-eigenvalues[i]-Omega_offset_IR)**2+Gamma_Raman**2)
     return term
 
 def Raman_Spectrum_Anisotropic(omega,Gamma_Raman,Iraman1modeAnisotropic,eigenvalues):
     term = 0.0
     for i in range(0,len(Iraman1modeAnisotropic)):
-        term = term+(Iraman1modeAnisotropic[i]*Gamma_Raman/math.pi)/(omega-eigenvalues[i]-Omega_offset_IR)**2
+        term = term+(Iraman1modeAnisotropic[i]*Gamma_Raman/math.pi)/((omega-eigenvalues[i]-Omega_offset_IR)**2+Gamma_Raman**2)
     return term
     
 
 
 
-def Chi2DeltaDistZZZEnsembleDeltaDist(theta_center,Isfg1mode): #theta_center must be in degrees, not radians! #COME BACK HERE!
+
+
+
+
+
+
+
+#BEGIN VSFG CODING!
+
+
+def Chi2DeltaDistZZZEnsembleDeltaDist(theta_center,Isfg1mode): #(Come back, check derivations for all these)
     xxz = [x[0][0][2] for x in Isfg1mode]
     
     yyz = [x[1][1][2] for x in Isfg1mode]
@@ -372,59 +360,9 @@ def Chi2DeltaDistZZZEnsembleDeltaDist(theta_center,Isfg1mode): #theta_center mus
     
     yzy = [x[1][2][1] for x in Isfg1mode]
     
-    zzx = [x[2][2][0] for x in Isfg1mode]
-    
-    zzy = [x[2][2][1] for x in Isfg1mode]
-    
-    yzz = [x[1][2][2] for x in Isfg1mode]
-    
-    zyz = [x[2][1][2] for x in Isfg1mode]
-    
-    xzz = [x[0][2][2] for x in Isfg1mode]
-    
-    zxz = [x[2][0][2] for x in Isfg1mode]
-    
     zxx = [x[2][0][0] for x in Isfg1mode]
     
     zyy = [x[2][1][1] for x in Isfg1mode]
-    
-    xyz = [x[0][1][2] for x in Isfg1mode]
-    
-    xzy = [x[0][2][1] for x in Isfg1mode]
-    
-    yxz = [x[1][0][2] for x in Isfg1mode]
-    
-    yzx = [x[1][2][0] for x in Isfg1mode]
-    
-    zxy = [x[2][0][1] for x in Isfg1mode]
-    
-    zyx = [x[2][1][0] for x in Isfg1mode]
-    
-    xxy = [x[0][0][1] for x in Isfg1mode]
-    
-    xyx = [x[0][1][0] for x in Isfg1mode]
-    
-    yxx = [x[1][0][0] for x in Isfg1mode]
-    
-    yzz = [x[1][2][2] for x in Isfg1mode]
-    
-    zyz = [x[2][1][2] for x in Isfg1mode]
-    
-    xyy = [x[0][1][1] for x in Isfg1mode]
-    
-    yxy = [x[1][0][1] for x in Isfg1mode]
-    
-    yyx = [x[1][1][0] for x in Isfg1mode]
-    
-    yyy = [x[1][1][1] for x in Isfg1mode]
-    
-    xxx = [x[0][0][0] for x in Isfg1mode]
-    
-    xyy = [x[0][1][1] for x in Isfg1mode]
-    
-    yxy = [x[1][0][1] for x in Isfg1mode]
-    
-    yyx = [x[1][1][0] for x in Isfg1mode]
     
     rad_t = theta_center*math.pi/180
     returned_val = list(np.zeros(len(zzz)))
@@ -448,59 +386,9 @@ def Chi2DeltaDistXZXEnsembleDeltaDist(theta_center,Isfg1mode):
     
     yzy = [x[1][2][1] for x in Isfg1mode]
     
-    zzx = [x[2][2][0] for x in Isfg1mode]
-    
-    zzy = [x[2][2][1] for x in Isfg1mode]
-    
-    yzz = [x[1][2][2] for x in Isfg1mode]
-    
-    zyz = [x[2][1][2] for x in Isfg1mode]
-    
-    xzz = [x[0][2][2] for x in Isfg1mode]
-    
-    zxz = [x[2][0][2] for x in Isfg1mode]
-    
     zxx = [x[2][0][0] for x in Isfg1mode]
     
     zyy = [x[2][1][1] for x in Isfg1mode]
-    
-    xyz = [x[0][1][2] for x in Isfg1mode]
-    
-    xzy = [x[0][2][1] for x in Isfg1mode]
-    
-    yxz = [x[1][0][2] for x in Isfg1mode]
-    
-    yzx = [x[1][2][0] for x in Isfg1mode]
-    
-    zxy = [x[2][0][1] for x in Isfg1mode]
-    
-    zyx = [x[2][1][0] for x in Isfg1mode]
-    
-    xxy = [x[0][0][1] for x in Isfg1mode]
-    
-    xyx = [x[0][1][0] for x in Isfg1mode]
-    
-    yxx = [x[1][0][0] for x in Isfg1mode]
-    
-    yzz = [x[1][2][2] for x in Isfg1mode]
-    
-    zyz = [x[2][1][2] for x in Isfg1mode]
-    
-    xyy = [x[0][1][1] for x in Isfg1mode]
-    
-    yxy = [x[1][0][1] for x in Isfg1mode]
-    
-    yyx = [x[1][1][0] for x in Isfg1mode]
-    
-    yyy = [x[1][1][1] for x in Isfg1mode]
-    
-    xxx = [x[0][0][0] for x in Isfg1mode]
-    
-    xyy = [x[0][1][1] for x in Isfg1mode]
-    
-    yxy = [x[1][0][1] for x in Isfg1mode]
-    
-    yyx = [x[1][1][0] for x in Isfg1mode]
     
     rad_t = theta_center*math.pi/180
     returned_val = list(np.zeros(len(zzz)))
@@ -508,9 +396,11 @@ def Chi2DeltaDistXZXEnsembleDeltaDist(theta_center,Isfg1mode):
     returned_val = [x + mark1*y for x, y in zip(returned_val, zzz)]
     mark2 = math.cos(rad_t)
     returned_val = [x + mark2*(y+z) for x, y, z in zip(returned_val, xzx, yzy)]
-    mark3 = 0.5*math.cos(rad_t)*math.sin(rad_t)**2
+    mark3 = 0.5*math.cos(rad_t)*math.sin(rad_t)**2 #mathematica does it differently...
+#    mark3 = 0.25*math.cos(rad_t)*math.sin(rad_t)**2 #Adjusted!
     returned_val = [x + mark3*(y+z+w) for x, y, z, w in zip(returned_val, yyz, yzy, zyy)]
-    mark4 = -0.5*math.cos(rad_t)*math.sin(rad_t)**2
+    mark4 = -0.5*math.cos(rad_t)*math.sin(rad_t)**2 #mathematica does it differently...
+#    mark4 = -0.25*math.cos(rad_t)*math.sin(rad_t)**2 #Adjusted!
     returned_val = [x + mark4*(y+z+w) for x, y, z, w in zip(returned_val, xxz, xzx, zxx)]
     returned_val = [0.5*Ns*i for i in returned_val]
     return returned_val
@@ -526,68 +416,21 @@ def Chi2DeltaDistXXZEnsembleDeltaDist(theta_center,Isfg1mode):
     
     yzy = [x[1][2][1] for x in Isfg1mode]
     
-    zzx = [x[2][2][0] for x in Isfg1mode]
-    
-    zzy = [x[2][2][1] for x in Isfg1mode]
-    
-    yzz = [x[1][2][2] for x in Isfg1mode]
-    
-    zyz = [x[2][1][2] for x in Isfg1mode]
-    
-    xzz = [x[0][2][2] for x in Isfg1mode]
-    
-    zxz = [x[2][0][2] for x in Isfg1mode]
-    
     zxx = [x[2][0][0] for x in Isfg1mode]
     
     zyy = [x[2][1][1] for x in Isfg1mode]
     
-    xyz = [x[0][1][2] for x in Isfg1mode]
-    
-    xzy = [x[0][2][1] for x in Isfg1mode]
-    
-    yxz = [x[1][0][2] for x in Isfg1mode]
-    
-    yzx = [x[1][2][0] for x in Isfg1mode]
-    
-    zxy = [x[2][0][1] for x in Isfg1mode]
-    
-    zyx = [x[2][1][0] for x in Isfg1mode]
-    
-    xxy = [x[0][0][1] for x in Isfg1mode]
-    
-    xyx = [x[0][1][0] for x in Isfg1mode]
-    
-    yxx = [x[1][0][0] for x in Isfg1mode]
-    
-    yzz = [x[1][2][2] for x in Isfg1mode]
-    
-    zyz = [x[2][1][2] for x in Isfg1mode]
-    
-    xyy = [x[0][1][1] for x in Isfg1mode]
-    
-    yxy = [x[1][0][1] for x in Isfg1mode]
-    
-    yyx = [x[1][1][0] for x in Isfg1mode]
-    
-    yyy = [x[1][1][1] for x in Isfg1mode]
-    
-    xxx = [x[0][0][0] for x in Isfg1mode]
-    
-    xyy = [x[0][1][1] for x in Isfg1mode]
-    
-    yxy = [x[1][0][1] for x in Isfg1mode]
-    
-    yyx = [x[1][1][0] for x in Isfg1mode]
     rad_t = theta_center*math.pi/180
     returned_val = list(np.zeros(len(zzz)))
-    mark1 = (math.sin(rad_t)**2)*math.cos(rad_t)
+    mark1 = (math.sin(rad_t)**2)*math.cos(rad_t) #DERIVATION!
     returned_val = [x + mark1*y for x, y in zip(returned_val, zzz)]
     mark2 = math.cos(rad_t)
     returned_val = [x + mark2*(y+z) for x, y, z in zip(returned_val, xxz, yyz)]
-    mark3 = 0.5*(math.sin(rad_t)**2)*math.cos(rad_t)
+    mark3 = 0.5*(math.sin(rad_t)**2)*math.cos(rad_t) #mathematica does it differently...
+#    mark3 = 0.25*(math.sin(rad_t)**2)*math.cos(rad_t) #Adjusted!
     returned_val = [x + mark3*(y+z+w) for x,y,z,w in zip(returned_val, yyz, yzy, zyy)]
-    mark4 = -0.5*(math.sin(rad_t)**2)*math.cos(rad_t)
+    mark4 = -0.5*(math.sin(rad_t)**2)*math.cos(rad_t) #mathematica does it differently...
+#    mark4 = -0.25*(math.sin(rad_t)**2)*math.cos(rad_t) #Adjusted!
     returned_val = [x + mark4*(y+z+w) for x,y,z,w in zip(returned_val, xxz, xzx, zxx)]
     returned_val = [0.5*Ns*i for i in returned_val]
     return returned_val
@@ -603,59 +446,9 @@ def Chi2DeltaDistZXXEnsembleDeltaDist(theta_center,Isfg1mode):
     
     yzy = [x[1][2][1] for x in Isfg1mode]
     
-    zzx = [x[2][2][0] for x in Isfg1mode]
-    
-    zzy = [x[2][2][1] for x in Isfg1mode]
-    
-    yzz = [x[1][2][2] for x in Isfg1mode]
-    
-    zyz = [x[2][1][2] for x in Isfg1mode]
-    
-    xzz = [x[0][2][2] for x in Isfg1mode]
-    
-    zxz = [x[2][0][2] for x in Isfg1mode]
-    
     zxx = [x[2][0][0] for x in Isfg1mode]
     
     zyy = [x[2][1][1] for x in Isfg1mode]
-    
-    xyz = [x[0][1][2] for x in Isfg1mode]
-    
-    xzy = [x[0][2][1] for x in Isfg1mode]
-    
-    yxz = [x[1][0][2] for x in Isfg1mode]
-    
-    yzx = [x[1][2][0] for x in Isfg1mode]
-    
-    zxy = [x[2][0][1] for x in Isfg1mode]
-    
-    zyx = [x[2][1][0] for x in Isfg1mode]
-    
-    xxy = [x[0][0][1] for x in Isfg1mode]
-    
-    xyx = [x[0][1][0] for x in Isfg1mode]
-    
-    yxx = [x[1][0][0] for x in Isfg1mode]
-    
-    yzz = [x[1][2][2] for x in Isfg1mode]
-    
-    zyz = [x[2][1][2] for x in Isfg1mode]
-    
-    xyy = [x[0][1][1] for x in Isfg1mode]
-    
-    yxy = [x[1][0][1] for x in Isfg1mode]
-    
-    yyx = [x[1][1][0] for x in Isfg1mode]
-    
-    yyy = [x[1][1][1] for x in Isfg1mode]
-    
-    xxx = [x[0][0][0] for x in Isfg1mode]
-    
-    xyy = [x[0][1][1] for x in Isfg1mode]
-    
-    yxy = [x[1][0][1] for x in Isfg1mode]
-    
-    yyx = [x[1][1][0] for x in Isfg1mode]
     
     rad_t = theta_center*math.pi/180
     returned_val = list(np.zeros(len(zzz)))
@@ -750,7 +543,7 @@ def Chi2DeltaDistZXZ(omega, theta_center, omega_offset, capital_gamma):
         im_val = im_val+(im_num/denom)
     return (re_val,im_val)
 '''
-
+#Non resonant part is defunct due to complex algebra, come back to this halfway through complex analysis
 def Chi2DeltaDistXXZ_NR(omega, theta_center, omega_offset, capital_gamma,A_nr,Phi_nr,eigenvalues,Isfg1mode):
     (re,im) = Chi2DeltaDistXXZ(omega,theta_center,omega_offset,capital_gamma,eigenvalues,Isfg1mode)
     re = re-A_nr*math.exp(Phi_nr/math.pi)
@@ -771,10 +564,10 @@ def Chi2DeltaDistZXX_NR(omega, theta_center, omega_offset, capital_gamma,A_nr,Ph
     re = re-A_nr*math.exp(Phi_nr/math.pi)
     return (re,im)
 
-def Chi2DeltaDistZXZ_NR(omega, theta_center, omega_offset, capital_gamma,A_nr,Phi_nr,eigenvalues,Isfg1mode):
-    (re,im) = Chi2DeltaDistZXZ(omega,theta_center,omega_offset,capital_gamma,eigenvalues,Isfg1mode)
-    re = re-A_nr*math.exp(Phi_nr/math.pi)
-    return (re,im)
+#def Chi2DeltaDistZXZ_NR(omega, theta_center, omega_offset, capital_gamma,A_nr,Phi_nr,eigenvalues,Isfg1mode):
+#    (re,im) = Chi2DeltaDistZXZ(omega,theta_center,omega_offset,capital_gamma,eigenvalues,Isfg1mode)
+#    re = re-A_nr*math.exp(Phi_nr/math.pi)
+#    return (re,im)
 
 
 
@@ -783,37 +576,41 @@ def Chi2DeltaDistZXZ_NR(omega, theta_center, omega_offset, capital_gamma,A_nr,Ph
 def Chi2DeltaDistXXZ_NR_LabFrameTotal(omega, theta_center, omega_offset, capital_gamma,A_nr,\
                                       Phi_nr, scale_factor_XXZ,eigenvalues,Isfg1mode):
     (re,im) = Chi2DeltaDistXXZ(omega,theta_center,omega_offset,capital_gamma,eigenvalues,Isfg1mode)
-    re = (scale_factor_XXZ*re)-A_nr*math.exp(Phi_nr/math.pi)
+#    re = (scale_factor_XXZ*re)-A_nr*math.exp(Phi_nr/math.pi)
+    re = (scale_factor_XXZ*re)
     im = (scale_factor_XXZ*im)
     return (re,im)
 
 def Chi2DeltaDistZZZ_NR_LabFrameTotal(omega, theta_center, omega_offset, capital_gamma,A_nr,\
                                       Phi_nr, scale_factor_ZZZ,eigenvalues,Isfg1mode):
     (re,im) = Chi2DeltaDistZZZ(omega,theta_center,omega_offset,capital_gamma,eigenvalues,Isfg1mode)
-    re = (scale_factor_ZZZ*re)-A_nr*math.exp(Phi_nr/math.pi)
+#    re = (scale_factor_ZZZ*re)-A_nr*math.exp(Phi_nr/math.pi)
+    re = scale_factor_ZZZ*re
     im = (scale_factor_ZZZ*im)
     return (re,im)
 
 def Chi2DeltaDistXZX_NR_LabFrameTotal(omega, theta_center, omega_offset, capital_gamma,A_nr,\
                                       Phi_nr, scale_factor_XZX,eigenvalues,Isfg1mode):
     (re,im) = Chi2DeltaDistXZX(omega,theta_center,omega_offset,capital_gamma,eigenvalues,Isfg1mode)
-    re = (scale_factor_XZX*re)-A_nr*math.exp(Phi_nr/math.pi)
+#    re = (scale_factor_XZX*re)-A_nr*math.exp(Phi_nr/math.pi)
+    re = scale_factor_XZX*re
     im = (scale_factor_XZX*im)
     return (re,im)
 
 def Chi2DeltaDistZXX_NR_LabFrameTotal(omega, theta_center, omega_offset, capital_gamma,A_nr,\
                                       Phi_nr, scale_factor_ZXX,eigenvalues,Isfg1mode):
     (re,im) = Chi2DeltaDistZXX(omega,theta_center,omega_offset,capital_gamma,eigenvalues,Isfg1mode)
-    re = (scale_factor_ZXX*re)-A_nr*math.exp(Phi_nr/math.pi)
+#    re = (scale_factor_ZXX*re)-A_nr*math.exp(Phi_nr/math.pi)
+    re = scale_factor_ZXX*re
     im = (scale_factor_ZXX*im)
     return (re,im)
 
-def Chi2DeltaDistZXZ_NR_LabFrameTotal(omega, theta_center, omega_offset, capital_gamma,A_nr,\
-                                      Phi_nr, scale_factor_ZXZ,eigenvalues,Isfg1mode):
-    (re,im) = Chi2DeltaDistZXZ(omega,theta_center,omega_offset,capital_gamma,eigenvalues,Isfg1mode)
-    re = (scale_factor_ZXZ*re)-A_nr*math.exp(Phi_nr/math.pi)
-    im = (scale_factor_ZXZ*im)
-    return (re,im)
+#def Chi2DeltaDistZXZ_NR_LabFrameTotal(omega, theta_center, omega_offset, capital_gamma,A_nr,\
+#                                      Phi_nr, scale_factor_ZXZ,eigenvalues,Isfg1mode):
+#    (re,im) = Chi2DeltaDistZXZ(omega,theta_center,omega_offset,capital_gamma,eigenvalues,Isfg1mode)
+#    re = (scale_factor_ZXZ*re)-A_nr*math.exp(Phi_nr/math.pi)
+#    im = (scale_factor_ZXZ*im)
+#    return (re,im)
 
 def ImChi2XXZ_NR_LabFrameTotal(omega,theta_center,omega_offset,capital_gamma, A_nr,\
                                Phi_nr, scale_factor_XXZ,eigenvalues,Isfg1mode):
@@ -841,7 +638,7 @@ def LzzSF(n1,n2,npSF, inc, ref):
 def LzzVIS(n1,n2,npVIS, inc, ref):
     return (2*n2*math.cos(inc))/(n1*math.cos(ref) + n2*math.cos(inc)) * (n1/npVIS)**2
 def LzzIR(n1,n2,npIR, inc, ref):
-    return (2*n2*math.cos(inc))/(n1*math.cos(inc) + n2*math.cos(inc)) * (n1/npIR)**2
+    return (2*n2*math.cos(inc))/(n1*math.cos(ref) + n2*math.cos(inc)) * (n1/npIR)**2
 
 def Lx(n1,n2,inc):
     return Lxx(n1,n2,inc,np.arcsin(n1/n2*math.sin(inc)))
@@ -861,7 +658,7 @@ def Lpppp(npSF, npVIS, npIR):
                 LzIR(n1IR,n2IR,npIR,incIR)
 
 def Lpssp(npIR):
-    return math.sin(incIR)*math.cos(incVIS)*math.cos(incSF)*\
+    return -1*math.sin(incIR)*math.cos(incVIS)*math.cos(incSF)*\
            Lx(n1SF,n2SF,incSF)*Lx(n1VIS,n2VIS,incVIS)*LzIR(n1IR,n2IR,npIR,incIR)
 
 def Lpsps(npVIS):
@@ -885,37 +682,69 @@ def Lsps(npVIS):
 def Lpss(npSF):
     return math.sin(incSF)*LzSF(n1SF,n2SF,npSF,incSF)*Ly(n1VIS,n2VIS,incVIS)*Ly(n1IR,n2IR,incIR)
 
+#print(Lpppp(1.29,1.357,1.343))
+#print(Lpssp(1.343))
+#print(Lpsps(1.357))
+#print(Lppss(1.29))
+#print(Lssp(1.2))
+#print(Lsps(1.2))
+#print(Lpss(1.2))
+
 def Chi2DeltaDist_ppp(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr,eigenvalues,Isfg1mode):
     #TAKING ONLY THE REAL PART FOR NOW!
-    return Chi2DeltaDistXXZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[0]*Lpssp(npIR) + \
+    re = Chi2DeltaDistXXZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[0]*Lpssp(npIR) + \
         Chi2DeltaDistXZX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[0]*Lpsps(npVIS) + \
         Chi2DeltaDistZXX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[0]*Lppss(npSF) + \
         Chi2DeltaDistZZZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[0]*Lpppp(npSF,npVIS,npIR)
+    im = Chi2DeltaDistXXZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[1]*Lpssp(npIR) + \
+        Chi2DeltaDistXZX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[1]*Lpsps(npVIS) + \
+        Chi2DeltaDistZXX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[1]*Lppss(npSF) + \
+        Chi2DeltaDistZZZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[1]*Lpppp(npSF,npVIS,npIR)
+    return (re,im)
                            
 def Chi2DeltaDist_ssp(omega,theta_center,omega_offset,capital_gamma,npIR,Anr,Phi_nr,eigenvalues,Isfg1mode):
-    #TAKING ONLY THE REAL PART FOR NOW!
-    return Chi2DeltaDistXXZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[0]*Lssp(npIR)
+    re = Chi2DeltaDistXXZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[0]*Lssp(npIR)
+    im = Chi2DeltaDistXXZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[1]*Lssp(npIR)
+    return (re,im)
 
 def Chi2DeltaDist_sps(omega,theta_center,omega_offset,capital_gamma,npVIS,Anr,Phi_nr,eigenvalues,Isfg1mode):
-    #TAKING ONLY THE REAL PART FOR NOW!
-    return Chi2DeltaDistXZX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[0]*Lsps(npVIS)
+    re = Chi2DeltaDistXZX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[0]*Lsps(npVIS)
+    im = Chi2DeltaDistXZX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[1]*Lsps(npVIS)
+    return (re,im)
 
 def Chi2DeltaDist_pss(omega,theta_center,omega_offset,capital_gamma,npSF,Anr,Phi_nr,eigenvalues,Isfg1mode):
-    #TAKING ONLY THE REAL PART FOR NOW!
-    return Chi2DeltaDistZXX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[0]*Lpss(npSF)
+    re = Chi2DeltaDistZXX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[0]*Lpss(npSF)
+    im = Chi2DeltaDistZXX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[1]*Lpss(npSF)
+    return (re,im)
 
 
 def CalculatedIntensity_PPP(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,ScaleFactor,Anr,Phi_nr,eigenvalues,Isfg1mode):
-    return ScaleFactor*abs(Chi2DeltaDist_ppp(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr,eigenvalues,Isfg1mode))**2
+#    return ScaleFactor*abs(Chi2DeltaDist_ppp(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr,eigenvalues,Isfg1mode)[0])**2
+    re, im = Chi2DeltaDist_ppp(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr,eigenvalues,Isfg1mode)
+    re_coeff = ScaleFactor*(re**2 - im**2)
+    im_coeff = ScaleFactor*(re*im*2)
+    return (re_coeff**2 + im_coeff**2)**0.5
 
 def CalculatedIntensity_SSP(omega,theta_center,omega_offset,capital_gamma,npIR,ScaleFactor,Anr,Phi_nr,eigenvalues,Isfg1mode):
-    return ScaleFactor*abs(Chi2DeltaDist_ssp(omega,theta_center,omega_offset,capital_gamma,npIR,Anr,Phi_nr,eigenvalues,Isfg1mode))**2
+#    return ScaleFactor*abs(Chi2DeltaDist_ssp(omega,theta_center,omega_offset,capital_gamma,npIR,Anr,Phi_nr,eigenvalues,Isfg1mode)[0])**2
+    re, im = Chi2DeltaDist_ssp(omega,theta_center,omega_offset,capital_gamma,npIR,Anr,Phi_nr,eigenvalues,Isfg1mode)
+    re_coeff = ScaleFactor*(re**2 - im**2)
+    im_coeff = ScaleFactor*(re*im*2)
+    return (re_coeff**2 + im_coeff**2)**0.5
 
 def CalculatedIntensity_PSS(omega,theta_center,omega_offset,capital_gamma,npVIS,ScaleFactor,Anr,Phi_nr,eigenvalues,Isfg1mode):
-    return ScaleFactor*abs(Chi2DeltaDist_pss(omega,theta_center,omega_offset,capital_gamma,npVIS,Anr,Phi_nr,eigenvalues,Isfg1mode))**2
+#    return ScaleFactor*abs(Chi2DeltaDist_pss(omega,theta_center,omega_offset,capital_gamma,npVIS,Anr,Phi_nr,eigenvalues,Isfg1mode)[0])**2
+    re, im = Chi2DeltaDist_pss(omega,theta_center,omega_offset,capital_gamma,npVIS,Anr,Phi_nr,eigenvalues,Isfg1mode)
+    re_coeff = ScaleFactor*(re**2 - im**2)
+    im_coeff = ScaleFactor*(re*im*2)
+    return (re_coeff**2 + im_coeff**2)**0.5
 
 def CalculatedIntensity_SPS(omega,theta_center,omega_offset,capital_gamma,npSF,ScaleFactor,Anr,Phi_nr,eigenvalues,Isfg1mode):
-    return ScaleFactor*abs(Chi2DeltaDist_sps(omega,theta_center,omega_offset,capital_gamma,npSF,Anr,Phi_nr,eigenvalues,Isfg1mode))**2
+#    return ScaleFactor*abs(Chi2DeltaDist_sps(omega,theta_center,omega_offset,capital_gamma,npSF,Anr,Phi_nr,eigenvalues,Isfg1mode)[0])**2
+    re, im = Chi2DeltaDist_sps(omega,theta_center,omega_offset,capital_gamma,npSF,Anr,Phi_nr,eigenvalues,Isfg1mode)
+    re_coeff = ScaleFactor*(re**2 - im**2)
+    im_coeff = ScaleFactor*(re*im*2)
+    return (re_coeff**2 + im_coeff**2)**0.5
 
 
 def XXZFomrulateDeltaDist(omega,theta_center,omega_offset,capital_gamma,ScaleFactorXXZ,Anr,Phi_nr,eigenvalues,Isfg1mode):
@@ -931,17 +760,22 @@ def ZZZFomrulateDeltaDist(omega,theta_center,omega_offset,capital_gamma,ScaleFac
     return abs(Chi2DeltaDistZZZ_NR_LabFrameTotal(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,ScaleFactorZZZ,eigenvalues,Isfg1mode))**2
 
 
+#import csv
 
 
+file_path = '/Users/mschwart/vsfg-bellerephon/test-16jan/'
+pdb_file = file_path+'output.pdb'
+trans_ham_file = file_path+'output_prepped_transdipmom_Hamm.txt'
+eigenval_file = file_path+'output_prepped_eval.txt'
+eigenvec_file = file_path+'output_prepped_evec.txt'
 
-
-
-
-def bellerephon_process():
+def bellerephon_process(pdb_file,trans_ham_file,eigenval_file,eigenvec_file):
     
-    header, body, chain_address = parse_pdb_file('output.pdb') #PWORKS!
-    trans_dip_mom = pd.read_csv('output_prepped_transdipmom_Hamm.txt',header=None) #Trans Dipole Moment
-    
+    header, body, chain_address = parse_pdb_file(pdb_file) #PWORKS!
+    trans_dip_mom = pd.read_csv(trans_ham_file,header=None) #Trans Dipole Moment
+#    print header
+#    print body
+#    print chain_address
     trans = []
     for i in trans_dip_mom[0].tolist():
         t = i.split(' ')
@@ -955,14 +789,15 @@ def bellerephon_process():
     
     
     #EVAL is for the eigenvalues
-    eigenvalues = pd.read_csv('output_prepped_eval.txt',header=None) #Eigenvalues
+    eigenvalues = pd.read_csv(eigenval_file,header=None) #Eigenvalues
+    print(eigenvalues)
     eig_val = []
     for i in eigenvalues[0].tolist():
-        eig_val.append(float(i)+1660)
+        eig_val.append(float(i)+1660) #1660
     eigenvalues = eig_val
     
     #EVEC is for the eigenvectors
-    eigenvectors = pd.read_csv('output_prepped_evec.txt',header=None) #Eigenvectors
+    eigenvectors = pd.read_csv(eigenvec_file,header=None) #Eigenvectors
     
     full_eig = []
     for i in eigenvectors[0].tolist():
@@ -977,19 +812,24 @@ def bellerephon_process():
     
     atom_full_positions = []
     for i in body:
-        atom_full_positions.append([float(i[5]),float(i[6]),float(i[7])])
-    #    atom_full_positions.append([float(i[5]),float(i[6]),float(i[7])])
-    
+        inter = [k for k in i if type(k) == float][1:]
+#        print(inter)
+#        atom_full_positions.append([float(i[5]),float(i[6]),float(i[7])])
+#        atom_full_positions.append([float(i[4]),float(i[5]),float(i[6])])
+        atom_full_positions.append(inter)
     
     Iir1mode, Iir1modeAbs, Raman_Tensor_Table = atom_analysis(header,body,atom_full_positions,eigenvectors,trans)
-    
+    if len(eigenvectors) == 0:
+        print('Hit a proline (maybe)')
+        return [0,0,0]
     IRspec = []
-    for i in range(3100,3501):
+#    for i in range(3100,3501):
+    for i in range(3100,3601):
         IRspec.append(ir_spectrum_compute(0.5*float(i),eigenvalues,Iir1modeAbs))
     #print(IRspec)
     
-    
-    plt.figure(figsize=(8,8))
+    ### GRAPH THE IR CURVE ###
+#    plt.figure(figsize=(8,8))
     plt.title('IR Curve')
     plt.plot(OmegaVal,IRspec)
     plt.xlabel('Wavelength (nm)')
@@ -1013,13 +853,13 @@ def bellerephon_process():
             Raman_matrix = Raman_Tensor_Table[v] #3x3 matrix
             a = a + float(Raman_matrix[0][0]*i_j)
             b = b + float(Raman_matrix[0][1]*i_j)
-            c = b + float(Raman_matrix[0][2]*i_j)
-            d = b + float(Raman_matrix[1][0]*i_j)
-            e = b + float(Raman_matrix[1][1]*i_j)
-            f = b + float(Raman_matrix[1][2]*i_j)
-            g = b + float(Raman_matrix[2][0]*i_j)
-            h = b + float(Raman_matrix[2][1]*i_j)
-            i = b + float(Raman_matrix[2][2]*i_j)
+            c = c + float(Raman_matrix[0][2]*i_j)
+            d = d + float(Raman_matrix[1][0]*i_j)
+            e = e + float(Raman_matrix[1][1]*i_j)
+            f = f + float(Raman_matrix[1][2]*i_j)
+            g = g + float(Raman_matrix[2][0]*i_j)
+            h = h + float(Raman_matrix[2][1]*i_j)
+            i = i + float(Raman_matrix[2][2]*i_j)
         Iraman1mode.append([[a,b,c],[d,e,f],[g,h,i]])
         Iraman1modeIsotropic.append(((a*e*i)**2)/9.0) #a*e*i = Trace of the matrix
     
@@ -1028,10 +868,9 @@ def bellerephon_process():
         tmp1 = .5*(i[0][0]-i[1][1])**2
         tmp2 = .5*(i[1][1]-i[2][2])**2
         tmp3 = .5*(i[2][2]-i[0][0])**2
-        tmp3 = .5*(i[2][2]-i[0][0])**2
         tmp4 = 0.75*(i[0][1]-i[1][0])**2
         tmp5 = 0.75*(i[1][2]-i[2][1])**2
-        tmp6 = 0.75*(i[0][2]-i[2][0])**2
+        tmp6 = 0.75*(i[2][0]-i[0][2])**2
         Iraman1modeAnisotropic.append(tmp1+tmp2+tmp3+tmp4+tmp5+tmp6)
     
     t = []
@@ -1039,14 +878,16 @@ def bellerephon_process():
     for i in linspace:
         t.append(Raman_Spectrum_Isotropic(float(i),Capital_Gamma_Raman,Iraman1modeIsotropic,eigenvalues))
         s.append(Raman_Spectrum_Anisotropic(float(i),Capital_Gamma_Raman,Iraman1modeAnisotropic,eigenvalues))
-    plt.figure(figsize=(8,8))
+    
+    ### GRAPH RAMAN CURVES (ISOTROPIC, ANISOTROPIC) ###
+    
+#    plt.figure(figsize=(8,8))
     plt.title('Raman Spectra')
     plt.plot(linspace,t)
     plt.xlabel('Wave Number (cm-1)')
     plt.ylabel('Intensity (normalized)')
     plt.show()
-    
-    plt.figure(figsize=(8,8))
+#    plt.figure(figsize=(8,8))
     plt.title('Raman Spectra (Anisotropic)')
     plt.plot(linspace,s)
     plt.xlabel('Wave Number (cm-1)')
@@ -1057,113 +898,56 @@ def bellerephon_process():
     for i in range(0,len(Iraman1mode)):
         t = Iraman1mode[i]
         s = Iir1mode[i]
+#        print(t)
+#        print(s)
         build = [[[t[0][0]*s[0],t[0][0]*s[1],t[0][0]*s[2]],
                    [t[0][1]*s[0],t[0][1]*s[1],t[0][1]*s[2]],
-                   [t[0][0]*s[0],t[0][0]*s[1],t[0][0]*s[2]]],
-                   [[t[0][0]*s[0],t[0][0]*s[1],t[0][0]*s[2]],
-                   [t[0][0]*s[0],t[0][0]*s[1],t[0][0]*s[2]],
-                   [t[0][0]*s[0],t[0][0]*s[1],t[0][0]*s[2]]],
-                   [[t[0][0]*s[0],t[0][0]*s[1],t[0][0]*s[2]],
-                   [t[0][0]*s[0],t[0][0]*s[1],t[0][0]*s[2]],
-                   [t[0][0]*s[0],t[0][0]*s[1],t[0][0]*s[2]]]]
+                   [t[0][2]*s[0],t[0][2]*s[1],t[0][2]*s[2]]],
+                   [[t[1][0]*s[0],t[1][0]*s[1],t[1][0]*s[2]],
+                   [t[1][1]*s[0],t[1][1]*s[1],t[1][1]*s[2]],
+                   [t[1][2]*s[0],t[1][2]*s[1],t[1][2]*s[2]]],
+                   [[t[2][0]*s[0],t[2][0]*s[1],t[2][0]*s[2]],
+                   [t[2][1]*s[0],t[2][1]*s[1],t[2][1]*s[2]],
+                   [t[2][2]*s[0],t[2][2]*s[1],t[2][2]*s[2]]]]
         Isfg1mode.append(build)
     
-    Chi2XXZ1Molecule = [x[0][0][2] for x in Isfg1mode]
+#    Chi2XXZ1Molecule = [x[0][0][2] for x in Isfg1mode]
     
-    Chi2YYZ1Molecule = [x[1][1][2] for x in Isfg1mode]
+#    Chi2YYZ1Molecule = [x[1][1][2] for x in Isfg1mode]
     
-    Chi2ZZZ1Molecule = [x[2][2][2] for x in Isfg1mode]
+#    Chi2ZZZ1Molecule = [x[2][2][2] for x in Isfg1mode]
     
-    Chi2XZX1Molecule = [x[0][2][0] for x in Isfg1mode]
+#    Chi2XZX1Molecule = [x[0][2][0] for x in Isfg1mode]
     
-    Chi2YZY1Molecule = [x[1][2][1] for x in Isfg1mode]
+#    Chi2YZY1Molecule = [x[1][2][1] for x in Isfg1mode]
     
-    Chi2ZZX1Molecule = [x[2][2][0] for x in Isfg1mode]
+#    Chi2ZZX1Molecule = [x[2][2][0] for x in Isfg1mode]
     
-    Chi2ZZY1Molecule = [x[2][2][1] for x in Isfg1mode]
+#    Chi2ZZY1Molecule = [x[2][2][1] for x in Isfg1mode]
     
-    xxz = [x[0][0][2] for x in Isfg1mode]
-    
-    yyz = [x[1][1][2] for x in Isfg1mode]
-    
-    zzz = [x[2][2][2] for x in Isfg1mode]
-    
-    xzx = [x[0][2][0] for x in Isfg1mode]
-    
-    yzy = [x[1][2][1] for x in Isfg1mode]
-    
-    zzx = [x[2][2][0] for x in Isfg1mode]
-    
-    zzy = [x[2][2][1] for x in Isfg1mode]
-    
-    yzz = [x[1][2][2] for x in Isfg1mode]
-    
-    zyz = [x[2][1][2] for x in Isfg1mode]
-    
-    xzz = [x[0][2][2] for x in Isfg1mode]
-    
-    zxz = [x[2][0][2] for x in Isfg1mode]
-    
-    zxx = [x[2][0][0] for x in Isfg1mode]
-    
-    zyy = [x[2][1][1] for x in Isfg1mode]
-    
-    xyz = [x[0][1][2] for x in Isfg1mode]
-    
-    xzy = [x[0][2][1] for x in Isfg1mode]
-    
-    yxz = [x[1][0][2] for x in Isfg1mode]
-    
-    yzx = [x[1][2][0] for x in Isfg1mode]
-    
-    zxy = [x[2][0][1] for x in Isfg1mode]
-    
-    zyx = [x[2][1][0] for x in Isfg1mode]
-    
-    xxy = [x[0][0][1] for x in Isfg1mode]
-    
-    xyx = [x[0][1][0] for x in Isfg1mode]
-    
-    yxx = [x[1][0][0] for x in Isfg1mode]
-    
-    yzz = [x[1][2][2] for x in Isfg1mode]
-    
-    zyz = [x[2][1][2] for x in Isfg1mode]
-    
-    xyy = [x[0][1][1] for x in Isfg1mode]
-    
-    yxy = [x[1][0][1] for x in Isfg1mode]
-    
-    yyx = [x[1][1][0] for x in Isfg1mode]
-    
-    yyy = [x[1][1][1] for x in Isfg1mode]
-    
-    xxx = [x[0][0][0] for x in Isfg1mode]
-    
-    xyy = [x[0][1][1] for x in Isfg1mode]
-    
-    yxy = [x[1][0][1] for x in Isfg1mode]
-    
-    yyx = [x[1][1][0] for x in Isfg1mode]
-    
-    
-    
-    
-    OmegaVAL =  [i/2.0 for i in range(3100,3501)]
+    OmegaVAL =  [i/2.0 for i in range(3100,3501)] #Go back and delete this later
+#    OmegaVAL =  [i/2.0 for i in range(3200,3601)]
+
     VSFGspec = [CalculatedIntensity_SSP(i,Theta_Center,Omega_offset,Capital_Gamma,\
                                         npIR,ScaleFactorXXZ,Anr,Phi_nr,eigenvalues,Isfg1mode) for i in OmegaVAL]
     
     VSFGspec2 = [CalculatedIntensity_SPS(i,Theta_Center,Omega_offset,Capital_Gamma,\
                                         npIR,ScaleFactorXXZ,Anr,Phi_nr,eigenvalues,Isfg1mode) for i in OmegaVAL]
-    
     VSFGspec = [i/max(VSFGspec) for i in VSFGspec]
     VSFGspec2 = [i/max(VSFGspec2) for i in VSFGspec2]
+#    with open('VSFG.csv','w') as result:
+#        wr = csv.writer(result)
+#        wr.writerow(OmegaVAL)
+#        wr.writerow(VSFGspec)
+#        wr.writerow(VSFGspec2)
+    return OmegaVAL, VSFGspec, VSFGspec2
+
+#    plt.figure()
+#    plt.plot(OmegaVAL,VSFGspec)
+#    plt.plot(OmegaVAL,VSFGspec2)
+#    plt.xlabel('Wavelength')
+#    plt.ylabel('Intensity (Normalized)')
+#    plt.show()
     
-    plt.figure()
-    plt.plot(OmegaVAL,VSFGspec)
-    plt.plot(OmegaVAL,VSFGspec2)
-    plt.xlabel('Wavelength')
-    plt.ylabel('Intensity (Normalized)')
-    plt.show()
-    
-bellerephon_process()
+#OmegaVAL, VSFG_SSP, VSFG_SPS, = bellerephon_process()
+
