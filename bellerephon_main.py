@@ -72,7 +72,8 @@ def parse_pdb_file(file_name):
 
     for r in body:
         del r[1]
-
+#        del r[3]
+    print body
     return header,body,'A' #'A' is standing in for the chain address here!
     
 
@@ -682,16 +683,8 @@ def Lsps(npVIS):
 def Lpss(npSF):
     return math.sin(incSF)*LzSF(n1SF,n2SF,npSF,incSF)*Ly(n1VIS,n2VIS,incVIS)*Ly(n1IR,n2IR,incIR)
 
-#print(Lpppp(1.29,1.357,1.343))
-#print(Lpssp(1.343))
-#print(Lpsps(1.357))
-#print(Lppss(1.29))
-#print(Lssp(1.2))
-#print(Lsps(1.2))
-#print(Lpss(1.2))
 
 def Chi2DeltaDist_ppp(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr,eigenvalues,Isfg1mode):
-    #TAKING ONLY THE REAL PART FOR NOW!
     re = Chi2DeltaDistXXZ_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[0]*Lpssp(npIR) + \
         Chi2DeltaDistXZX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[0]*Lpsps(npVIS) + \
         Chi2DeltaDistZXX_NR(omega,theta_center,omega_offset,capital_gamma,Anr,Phi_nr,eigenvalues,Isfg1mode)[0]*Lppss(npSF) + \
@@ -719,28 +712,24 @@ def Chi2DeltaDist_pss(omega,theta_center,omega_offset,capital_gamma,npSF,Anr,Phi
 
 
 def CalculatedIntensity_PPP(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,ScaleFactor,Anr,Phi_nr,eigenvalues,Isfg1mode):
-#    return ScaleFactor*abs(Chi2DeltaDist_ppp(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr,eigenvalues,Isfg1mode)[0])**2
     re, im = Chi2DeltaDist_ppp(omega,theta_center,omega_offset,capital_gamma,npSF,npVIS,npIR,Anr,Phi_nr,eigenvalues,Isfg1mode)
     re_coeff = ScaleFactor*(re**2 - im**2)
     im_coeff = ScaleFactor*(re*im*2)
     return (re_coeff**2 + im_coeff**2)**0.5
 
 def CalculatedIntensity_SSP(omega,theta_center,omega_offset,capital_gamma,npIR,ScaleFactor,Anr,Phi_nr,eigenvalues,Isfg1mode):
-#    return ScaleFactor*abs(Chi2DeltaDist_ssp(omega,theta_center,omega_offset,capital_gamma,npIR,Anr,Phi_nr,eigenvalues,Isfg1mode)[0])**2
     re, im = Chi2DeltaDist_ssp(omega,theta_center,omega_offset,capital_gamma,npIR,Anr,Phi_nr,eigenvalues,Isfg1mode)
     re_coeff = ScaleFactor*(re**2 - im**2)
     im_coeff = ScaleFactor*(re*im*2)
     return (re_coeff**2 + im_coeff**2)**0.5
 
 def CalculatedIntensity_PSS(omega,theta_center,omega_offset,capital_gamma,npVIS,ScaleFactor,Anr,Phi_nr,eigenvalues,Isfg1mode):
-#    return ScaleFactor*abs(Chi2DeltaDist_pss(omega,theta_center,omega_offset,capital_gamma,npVIS,Anr,Phi_nr,eigenvalues,Isfg1mode)[0])**2
     re, im = Chi2DeltaDist_pss(omega,theta_center,omega_offset,capital_gamma,npVIS,Anr,Phi_nr,eigenvalues,Isfg1mode)
     re_coeff = ScaleFactor*(re**2 - im**2)
     im_coeff = ScaleFactor*(re*im*2)
     return (re_coeff**2 + im_coeff**2)**0.5
 
 def CalculatedIntensity_SPS(omega,theta_center,omega_offset,capital_gamma,npSF,ScaleFactor,Anr,Phi_nr,eigenvalues,Isfg1mode):
-#    return ScaleFactor*abs(Chi2DeltaDist_sps(omega,theta_center,omega_offset,capital_gamma,npSF,Anr,Phi_nr,eigenvalues,Isfg1mode)[0])**2
     re, im = Chi2DeltaDist_sps(omega,theta_center,omega_offset,capital_gamma,npSF,Anr,Phi_nr,eigenvalues,Isfg1mode)
     re_coeff = ScaleFactor*(re**2 - im**2)
     im_coeff = ScaleFactor*(re*im*2)
@@ -911,22 +900,8 @@ def bellerephon_process(pdb_file,trans_ham_file,eigenval_file,eigenvec_file):
                    [t[2][2]*s[0],t[2][2]*s[1],t[2][2]*s[2]]]]
         Isfg1mode.append(build)
     
-#    Chi2XXZ1Molecule = [x[0][0][2] for x in Isfg1mode]
-    
-#    Chi2YYZ1Molecule = [x[1][1][2] for x in Isfg1mode]
-    
-#    Chi2ZZZ1Molecule = [x[2][2][2] for x in Isfg1mode]
-    
-#    Chi2XZX1Molecule = [x[0][2][0] for x in Isfg1mode]
-    
-#    Chi2YZY1Molecule = [x[1][2][1] for x in Isfg1mode]
-    
-#    Chi2ZZX1Molecule = [x[2][2][0] for x in Isfg1mode]
-    
-#    Chi2ZZY1Molecule = [x[2][2][1] for x in Isfg1mode]
     
     OmegaVAL =  [i/2.0 for i in range(3100,3501)] #Go back and delete this later
-#    OmegaVAL =  [i/2.0 for i in range(3200,3601)]
 
     VSFGspec = [CalculatedIntensity_SSP(i,Theta_Center,Omega_offset,Capital_Gamma,\
                                         npIR,ScaleFactorXXZ,Anr,Phi_nr,eigenvalues,Isfg1mode) for i in OmegaVAL]
