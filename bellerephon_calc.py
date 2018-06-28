@@ -17,151 +17,6 @@ ProlineHBshift2 = 8.0
 
 woff = 0.0
 idum = -1.0
-'''
-/* Need this one! */
-void transition_charges(float **H1,float *vxd,float *vyd,float *vzd,float **x,float **y,float **z,int n, int istruct, const char *protein)
-{
-    char temp[100]; #DONE
-    float xmode[5],ymode[5],zmode[5],qmode[5],Freq,Mass; #DONE
-    float x_der[5],y_der[5],z_der[5],q_der[5]; #DONE
-    float vxCOrev,vyCOrev,vzCOrev,vxCO,vyCO,vzCO; #DONE
-    float *dipposx,*dipposy,*dipposz; #DONE
-    float vxCNrev,vyCNrev,vzCNrev,vxCN,vyCN,vzCN; #DONE
-    float aCO,aCN,Amplitude,xtmp,q,sig,q1,q2,q3,q4,r1,r2,r3,r4; #DONE
-    float ***xd, ***yd, ***zd; #DONE
-    FILE *file,*transdipmomfile; #DONE
-    int i,i1,i2,j,j1,j2,l,sign[nmax]; #DONE
-    
-    xd=f3tensor(1,2,1,n,1,4);yd=f3tensor(1,2,1,n,1,4);zd=f3tensor(1,2,1,n,1,4); #DONE
-    dipposx=vector(1,n);dipposy=vector(1,n);dipposz=vector(1,n); #DONE
-
-    
-    /*Load parameter files for displacements, charges and charge flows*/
-    if((file=fopen("nma.par","rt"))==NULL) {printf ("\nCan't open %s\n","nma.par");exit(1);}
-    fscanf(file,"%f ",&Freq);
-    fscanf(file,"%f ",&Mass);
-    for (j=1;j<=4;j++) fscanf(file,"%f %f %f %f",&xmode[j],&ymode[j],&zmode[j],&qmode[j]);
-    for (j=1;j<=4;j++) fscanf(file,"%f %f %f %f",&x_der[j],&y_der[j],&z_der[j],&q_der[j]);
-    
-    
-    /*Calculate displaced atoms*/ ###
-    Amplitude=1e10*sqrt(h/(8*PI*PI*Freq*c*Mass*amu)); ###
-    for (i=1;i<=n;i++)
-    {
-        vxCOrev=xmode[1]-xmode[2];vyCOrev=ymode[1]-ymode[2];vzCOrev=zmode[1]-zmode[2];
-        vxCNrev=xmode[1]-xmode[3];vyCNrev=ymode[1]-ymode[3];vzCNrev=zmode[1]-zmode[3];
-        vxCO=x[i][1]-x[i][2];vyCO=y[i][1]-y[i][2];vzCO=z[i][1]-z[i][2];
-        vxCN=x[i][1]-x[i][3];vyCN=y[i][1]-y[i][3];vzCN=z[i][1]-z[i][3];
-        
-        for (j=1;j<=4;j++)
-        {
-            aCO=(x_der[j]*vxCOrev+y_der[j]*vyCOrev+z_der[j]*vzCOrev)/length(vxCOrev,vyCOrev,vzCOrev)/length(vxCO,vyCO,vzCO);
-            aCN=(x_der[j]*vxCNrev+y_der[j]*vyCNrev+z_der[j]*vzCNrev)/length(vxCNrev,vyCNrev,vzCNrev)/length(vxCN,vyCN,vzCN);
-            if (j==1)
-            {
-                sign[i]=1;                                /*Test sign of Eigenmode by movement of C-atom)*/
-                if (aCO>0) sign[i]=-1;
-            }
-            
-            xd[1][i][j]=x[i][j]-sign[i]*Amplitude/2.*(aCO*vxCO+aCN*vxCN);
-            yd[1][i][j]=y[i][j]-sign[i]*Amplitude/2.*(aCO*vyCO+aCN*vyCN);
-            zd[1][i][j]=z[i][j]-sign[i]*Amplitude/2.*(aCO*vzCO+aCN*vzCN);
-            xd[2][i][j]=x[i][j]+sign[i]*Amplitude/2.*(aCO*vxCO+aCN*vxCN);
-            yd[2][i][j]=y[i][j]+sign[i]*Amplitude/2.*(aCO*vyCO+aCN*vyCN);
-            zd[2][i][j]=z[i][j]+sign[i]*Amplitude/2.*(aCO*vzCO+aCN*vzCN);
-        }
-    }
-    
-  
-  /*First calculate transition dipoles*/
-    for (i=1;i<=n;i++)
-    {
-        vxd[i]=0;vyd[i]=0;vzd[i]=0;
-        for (j=1;j<=4;j++)
-            for (l=1,sig=-1;l<=2;l++,sig+=2)
-            {
-                q=qmode[j]+sign[i]*0.5*sig*q_der[j];
-                vxd[i]+=sig*xd[l][i][j]*q*Debye;
-                vyd[i]+=sig*yd[l][i][j]*q*Debye;
-                vzd[i]+=sig*zd[l][i][j]*q*Debye;
-            }
-        printf("Transition Dipoles: %f %f %f\n",vxd[i],vyd[i],vzd[i]);
-        printf("Transition Dipoles Length: %f\n",length(vxd[i],vyd[i],vzd[i]));
-       if (length(vxd[i],vyd[i],vzd[i])>0.4) {
-            printf("Transition dipole (i is %d) length is too long! Coordinates are: C - %f %f %f, N - %f %f %f and O-  %f %f %f", i, x[i][1], y[i][1], z[i][1], x[i][3], y[i][3], z[i][3], x[i][2], y[i][2], z[i][2]);        }
-
-    
-    }     
-    
-    sprintf(temp,"%s_transdipmom_Hamm.txt",protein);
-    transdipmomfile = fopen(temp,"wt");
-   
-    /* Print transition dipole moments to file: */
-    for(i=1;i<=n;i++){
-        fprintf(transdipmomfile," %7.2lf %7.2lf %7.2lf \n",vxd[i],vyd[i],vzd[i]);
-    }
-    
-            fclose(transdipmomfile);
-   
-    /*Calculate transition dipole positions (by Steven Roeters)*/
-    for (i=1;i<=n;i++)
-    {
-        // Construction of CO and CN-vectors:
-        vxCO=x[i][1]-x[i][2];vyCO=y[i][1]-y[i][2];vzCO=z[i][1]-z[i][2];
-        vxCN=x[i][1]-x[i][3];vyCN=y[i][1]-y[i][3];vzCN=z[i][1]-z[i][3];
-        
-        // Placement of these vectors in space, according to Torii et al. '91, Krimm et al. '72 and Sandeman '55:
-        dipposx[i] = x[i][1] + ( (x[i][2]-x[i][1]) * ( 0.868 / length(vxCO,vyCO,vzCO) ) );
-        dipposy[i] = y[i][1] + ( (y[i][2]-y[i][1]) * ( 0.868 / length(vxCO,vyCO,vzCO) ) );
-        dipposz[i] = z[i][1] + ( (z[i][2]-z[i][1]) * ( 0.868 / length(vxCO,vyCO,vzCO) ) );
-                  printf("\n x,y,z & length of dipole %d: %6.3f %6.3f %6.3f %6.3f\n",i,vxd[i],vyd[i],vzd[i], length(vxd[i],vyd[i],vzd[i]));
-    
-            printf("Distance between C-atom of backbone and the dipole at peptide bond %d: %f\n",i,length((x[i][2]-x[i][1])*(0.868/length(vxCO,vyCO,vzCO)),(y[i][2]-y[i][1])*(0.868/length(vxCO,vyCO,vzCO)),(z[i][2]-z[i][1])*(0.868/length(vxCO,vyCO,vzCO))));
-        
- printf("Transition Dipole peptide bond %d: %f %f %f, Length: %f and CO vector and length: (%f %f %f, %f)\n",i,vxd[i],vyd[i],vzd[i],length(vxd[i],vyd[i],vzd[i]),vxCO,vyCO,vzCO,length(vxCO,vyCO,vzCO));
-        
-        if (length(vxCO,vyCO,vzCO)>1.3) {
-                    printf("The CO-length is too long (%f A)!\n",length(vxCO,vyCO,vzCO));
-        }
-
-    }
-      
-    {
-    int i;
-    float dipdist,dipvecx,dipvecy,dipvecz;
-for (i=2;i<=n;i++)
-for (j=1;j<i;j++)
-{
-            dipdist=sqrt((dipposx[i]-dipposx[j])*(dipposx[i]-dipposx[j])+(dipposy[i]-dipposy[j])*(dipposy[i]-dipposy[j])+(dipposz[i]-dipposz[j])*(dipposz[i]-dipposz[j]));
-            
-            dipvecx=dipposx[i]-dipposx[j];
-            dipvecy=dipposy[i]-dipposy[j];
-            dipvecz=dipposz[i]-dipposz[j];
-            
-#ifdef DEBUG
-            printf("Dipoles: %2d  %2d Difference vector: %5.3f %5.3f %5.3f  \nDifference vector length calc. 1: %5.3f\n",i,j,dipvecx,dipvecy,dipvecz,dipdist);
-            printf("Dipole length: %2d = %5.3f, %2d = %5.3f \nDifference vector length calc. 2: %5.3f\n",i,length(dipposx[i],dipposy[i],dipposz[i]),j,length(dipposx[j],dipposy[j],dipposz[j]),length(dipposx[i]-dipposx[j],dipposy[i]-dipposy[j],dipposz[i]-dipposz[j]));
-#endif
-    
-            if(dipdist<.2)printf ("\nDistances too small in interaction at %d and %d: %10.5lf\n",i,j,dipdist);
-                
-            // Write non-nearest neighbor elements of Hamiltonian with Transition Dipole Coupling (TDC) model:
-            H1[i][j]=0;
-            H1[i][j]+=( ( (vxd[i]*vxd[j])+(vyd[i]*vyd[j])+(vzd[i]*vzd[j]) ) / pow(dipdist,3) )-3*( ( ((dipvecx*vxd[i])+(dipvecy*vyd[i])+(dipvecz*vzd[i]))*((dipvecx*vxd[j])+(dipvecy*vyd[j])+(dipvecz*vzd[j]))) / (pow(dipdist,5)) );
-    
-    H1[i][j]=5033*H1[i][j];
-    H1[j][i]=H1[i][j];
-        }
-
-}
-
-free_f3tensor(xd,1,2,1,n,1,4);free_f3tensor(yd,1,2,1,n,1,4);free_f3tensor(zd,1,2,1,n,1,4);
-
-}
-
-'''
-
-
 
 
 
@@ -323,18 +178,18 @@ def coordinate_read(file_name):
         try:
             int(i[1])
             atom_data.append(i)
-            print i
+#            print i
         except (ValueError,IndexError):
             pass
-    for i in atom_data:
-        print i[6:9]
+#    for i in atom_data:
+#        print i[6:9]
     n=len(atom_data)
     #In the x,y,z matrices defined below, we have the following:
     #   The first position is reserved for carbon atoms ('C')
     #   The second position is reserved for oxygen atoms ('O')
     #   The third position is reserved for nitrogen atoms ('N')
     #   The fourth position is reserved for the following: ('H','CN','HN')
-    #   The fifth position is reserved for 
+    #   The fifth position is reserved for alpha carbon atoms ('CA')
     x = [[0,0,0,0,0] for _ in range(n)]
     y = [[0,0,0,0,0] for _ in range(n)]
     z = [[0,0,0,0,0] for _ in range(n)]
@@ -351,72 +206,16 @@ def coordinate_read(file_name):
             x[i][2] = float(atom_data[i][6])
             y[i][2] = float(atom_data[i][7])
             z[i][2] = float(atom_data[i][8])
-        if atom_data[i][2] == 'N':
+        if atom_data[i][2] == 'H' or atom_data[i][2] == 'CN' \
+                    or atom_data[i][2] == 'HN':
             x[i][3] = float(atom_data[i][6])
             y[i][3] = float(atom_data[i][7])
             z[i][3] = float(atom_data[i][8])
-        if atom_data[i][2] == 'H' or atom_data[i][2] == 'CN' \
-                    or atom_data[i][2] == 'HN':
+        if atom_data[i][2] == 'CA':
             x[i][4] = float(atom_data[i][6])
             y[i][4] = float(atom_data[i][7])
             z[i][4] = float(atom_data[i][8])
     return atom_data,x,y,z,n
-
-
-def ran1(idum):
-    NTAB = 32
-    IQ = 127773
-    IA = 16807
-    IR = 2836
-    IM = 2147483647
-    NDIV = 1+(IM-1)/NTAB
-    AM = 1.0/IM
-    RNMX = 1.0 - (1.2*10**-7)
-    iy = 0
-    iv = [0]*NTAB
-    if idum<=0 or not iy:
-        if -idum<1:
-            idum = 1
-        else:
-            idum = -idum
-        for j in range(NTAB+7,-1,-1):
-            k = idum/IQ
-            idum = IA*(idum-k*IQ)-IR*k
-            if idum<0:
-                idum += IM
-            if j<NTAB:
-                iv[j] = idum
-        iy = iv[0]
-    k = idum/IQ
-    idum = IA*(idum-k*IQ)-IR*k
-    if idum<0:
-        idum+=IM
-    j = int(iy/NDIV)
-    iy = iv[j]
-    iv[j] = idum
-    if AM*iy>RNMX:
-        return RNMX
-    else:
-        return AM*iy
-    
-
-def gasdev(idum):
-    iset = 0
-    gset = 0
-    if iset == 0:
-        t = 0
-        while t>=0:
-            v1 = 2.0*ran1(idum)-1.0
-            v2 = 2.0*ran1(idum)-1.0
-            rsq = v1*v1+v2*v2
-            t = rsq
-        fac = np.sqrt(-2.0*np.log(rsq)/rsq)
-        gset = v1*fac
-        iset = 1
-        return v2*fac
-    else:
-        iset = 0
-        return gset
 
 def dehydral(x1,x2,x3,x4,y1,y2,y3,y4,z1,z2,z3,z4):
     #"Dehydral" means dihedral in Dutch.
@@ -446,15 +245,16 @@ def dehydral(x1,x2,x3,x4,y1,y2,y3,y4,z1,z2,z3,z4):
 
 
 
-def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,istruct,protein):
+def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,protein):
     #CALCULATE THE DISPLACED ATOMS
+    print x[:5]
     amplitude=(10**10)*np.sqrt(h/(8*math.pi*math.pi*nma_freq*c*nma_mass*amu))
-    xd = [[[0]*n]*4]*2
-    yd = [[[0]*n]*4]*2
-    zd = [[[0]*n]*4]*2
-         
+    xd = [[[0,0,0,0]]*n]*2
+    yd = [[[0,0,0,0]]*n]*2
+    zd = [[[0,0,0,0]]*n]*2
+    sign = [0]*n
     for i in range(0,n):
-        vxCOrev = x_mode[0]-x_mode[1]
+        vxCOrev = x_mode[0]-x_mode[1] #These modes are defined above!
         vyCOrev = y_mode[0]-y_mode[1]
         vzCOrev = z_mode[0]-z_mode[1]
         
@@ -470,10 +270,14 @@ def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,istruct,protein):
         vyCN = y[i][0] - y[i][2]
         vzCN = z[i][0] - z[i][2]
         
-        for j in range(0,5):
+        for j in range(0,4):
             a_CO = (x_der[j]*vxCOrev+y_der[j]*vzCOrev)/length_3d(vxCOrev,vyCOrev,vzCOrev)/length_3d(vxCO,vyCO,vzCO)
             a_CN = (x_der[j]*vxCNrev+y_der[j]*vzCNrev)/length_3d(vxCNrev,vyCNrev,vzCNrev)/length_3d(vxCN,vyCN,vzCN)
-            if j != 0 and a_CO>0:                
+            if j == 1:
+                sign[i] = 1
+            if a_CO>0:
+                sign[i] = -1
+            if j != 0 and a_CO>0:
                 xd[0][i][j] = x[i][j]+amplitude/2*(a_CO*vxCO+a_CN*vxCN)
                 yd[0][i][j] = y[i][j]+amplitude/2*(a_CO*vyCO+a_CN*vyCN)
                 zd[0][i][j] = z[i][j]+amplitude/2*(a_CO*vzCO+a_CN*vzCN)
@@ -489,38 +293,52 @@ def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,istruct,protein):
                 xd[1][i][j] = x[i][j]+amplitude/2*(a_CO*vxCO+a_CN*vxCN)
                 yd[1][i][j] = y[i][j]+amplitude/2*(a_CO*vyCO+a_CN*vyCN)
                 zd[1][i][j] = z[i][j]+amplitude/2*(a_CO*vzCO+a_CN*vzCN)
-        #CALCULATE TRANSITION DIPOLES
-        
-    
-        
-
-'''
-    for (i=1;i<=n;i++)
-    {
-        vxCOrev=xmode[1]-xmode[2];vyCOrev=ymode[1]-ymode[2];vzCOrev=zmode[1]-zmode[2]; ###
-        vxCNrev=xmode[1]-xmode[3];vyCNrev=ymode[1]-ymode[3];vzCNrev=zmode[1]-zmode[3]; ###
-        vxCO=x[i][1]-x[i][2];vyCO=y[i][1]-y[i][2];vzCO=z[i][1]-z[i][2]; ###
-        vxCN=x[i][1]-x[i][3];vyCN=y[i][1]-y[i][3];vzCN=z[i][1]-z[i][3]; ###
-        
-        for (j=1;j<=4;j++)
-        {
-            aCO=(x_der[j]*vxCOrev+y_der[j]*vyCOrev+z_der[j]*vzCOrev)/length(vxCOrev,vyCOrev,vzCOrev)/length(vxCO,vyCO,vzCO);
-            aCN=(x_der[j]*vxCNrev+y_der[j]*vyCNrev+z_der[j]*vzCNrev)/length(vxCNrev,vyCNrev,vzCNrev)/length(vxCN,vyCN,vzCN);
-            if (j==1)
-            {
-                sign[i]=1;                                /*Test sign of Eigenmode by movement of C-atom)*/
-                if (aCO>0) sign[i]=-1;
-            }
-            
-            xd[1][i][j]=x[i][j]-sign[i]*Amplitude/2.*(aCO*vxCO+aCN*vxCN);
-            yd[1][i][j]=y[i][j]-sign[i]*Amplitude/2.*(aCO*vyCO+aCN*vyCN);
-            zd[1][i][j]=z[i][j]-sign[i]*Amplitude/2.*(aCO*vzCO+aCN*vzCN);
-            xd[2][i][j]=x[i][j]+sign[i]*Amplitude/2.*(aCO*vxCO+aCN*vxCN);
-            yd[2][i][j]=y[i][j]+sign[i]*Amplitude/2.*(aCO*vyCO+aCN*vyCN);
-            zd[2][i][j]=z[i][j]+sign[i]*Amplitude/2.*(aCO*vzCO+aCN*vzCN);
-        }
-    }
-'''
+    #CALCULATE TRANSITION DIPOLES
+    for i in range(0,n):
+        for j in range(0,4):
+            for l in range(0,2):
+                for sig in range(-1,3):
+                    q = q_mode[j]+sign[i]*0.5*sig*q_der[j]
+                    vxd[i] += sig*xd[l][i][j]*q*Debye
+                    vyd[i] += sig*yd[l][i][j]*q*Debye
+                    vzd[i] += sig*zd[l][i][j]*q*Debye
+        if (vxd[i]**2 + vyd[i]**2 + vzd[i]**2)**0.5 > 0.4:
+            print 'Transition Dipole '+str(i)+'length is too long!'
+    #Transition dipoles are now calculated in vxd, vyd, and vzd.
+    dipposx = []
+    dipposy = []
+    dipposz = []
+    for i in range(0,n):
+        vxCO = x[i][1]-x[i][2]
+        vyCO = y[i][1]-y[i][2]
+        vzCO = z[i][1]-z[i][2]
+        vxCN = x[i][1]-x[i][3]
+        vyCN = y[i][1]-y[i][3]
+        vzCN = z[i][1]-z[i][3]
+        len_CO = (vxCO**2 + vyCO**2 + vzCO**2)**0.5
+        dipposx.append(x[i][1]+(x[i][2]-x[i][1])*(0.868/len_CO))
+        dipposy.append(y[i][1]+(y[i][2]-y[i][1])*(0.868/len_CO))
+        dipposz.append(z[i][1]+(z[i][2]-z[i][1])*(0.868/len_CO))
+        if len_CO>1.3:
+            print 'The CO-length on '+str(i)+' is too long!'
+    for i in range(1,n):
+        for j in range(0,n):
+            if j>i:
+                pass
+            else:
+                dipdist = ((dipposx[i]-dipposx[j])**2 + (dipposy[i]-dipposy[j])**2 + (dipposz[i]-dipposz[j])**2)**0.5
+                dipvecx = dipposx[i]-dipposx[j]
+                dipvecy = dipposy[i]-dipposy[j]
+                dipvecz = dipposz[i]-dipposz[j]
+                if dipdist<0.2:
+                    print 'Distances too small in interaction at point '+str(i)+','+str(j)
+                hamiltonian[i][j] = 0
+                hamiltonian[i][j] += (((vxd[i]*vxd[j])+(vyd[i]*vyd[j])+(vzd[i]*vzd[j]))/pow(dipdist,3))\
+                                       -3*((((dipvecx*vxd[i])+(dipvecy*vyd[i])+(dipvecz*vzd[i]))*\
+                                        ((dipvecx*vxd[j])+(dipvecy*vyd[j])+(dipvecz*vzd[j])))/(pow(dipdist,5)))
+                hamiltonian[i][j] = hamiltonian[i][j]*5033
+                hamiltonian[j][i] = hamiltonian[i][j]
+    return hamiltonian,x,y,z,n,protein
 
 def parameterizedB3LYP(hamiltonian,x,y,z,n):
     ph = []
@@ -539,7 +357,7 @@ def parameterizedB3LYP(hamiltonian,x,y,z,n):
                 coupling += coupling_par[j+49+((k-1)*5)]*math.sin(j*psi/180*math.pi)*math.sin(k*phi/180*math.pi)
         hamiltonian[i][i+1] = coupling
         hamiltonian[i+1][i] = coupling #Building diagonal-adjacents to the hamiltonian matrix!
-    
+    return hamiltonian,x,y,z,n
 
 
 
@@ -561,7 +379,7 @@ def HydrogenBond(hamiltonian,x,y,z,n,prolist): #See line 730 in template.c
                 
             
 
-def HydrogenBondChimera(hamiltonian,n,subuoffset,subucumsum,prolist,istruct,protein):
+def HydrogenBondChimera(hamiltonian,n,subuoffset,subucumsum,prolist,protein):
     return
 
 def HydrogenBondZanniSkinner(hamiltonian,n,subuoffset,subucumsum,prolist):
@@ -570,15 +388,16 @@ def HydrogenBondZanniSkinner(hamiltonian,n,subuoffset,subucumsum,prolist):
 
 
 def interaction(hamiltonian, vxd, vyd, vzd, x, y, z, n, name, \
-                subuoffset, subucumsum, prolist, istruct, protein, \
+                prolist, protein, \
                 protocol = 'HydrogenBond'):
     '''Protocol may be HydrogenBond, HydrogenBondChimera, or HydrogenBondZanniSkinner.'''
-    transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,istruct,protein)
-    parameterizedB3LYP(hamiltonian,x,y,z,n)
+    hamiltonian,vxd,vyd,vzd,x,y,z,n,protein = transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,protein)
+    hamiltonian,x,y,z,n = parameterizedB3LYP(hamiltonian,x,y,z,n)
     if protocol == 'HydrogenBond':
-        HydrogenBond(hamiltonian,x,y,z,n,prolist)
+        hamiltonian,x,y,z,n,prolist = HydrogenBond(hamiltonian,x,y,z,n,prolist)
+        return hamiltonian,vxd,vyd,vzd,x,y,z,n,n,name,prolist,protein
     elif protocol == 'HydrogenBondChimera':
-        #HydrogenBondChimera(hamiltonian,n,subuoffset,subucumsum,prolist,istruct,protein)
+        #HydrogenBondChimera(hamiltonian,n,subuoffset,subucumsum,prolist,protein)
         raise NotImplementedError
     else:
         #HydrogenBondZanniSkinner(hamiltonian,n,subuoffset,subucumsum,prolist)
@@ -587,14 +406,21 @@ def interaction(hamiltonian, vxd, vyd, vzd, x, y, z, n, name, \
 
 def main_calculate(file_name):
     name = file_name.replace('.pdb','')
-    atom_data,x,y,z,n = coordinate_read(file_name)
+    protein,x,y,z,n = coordinate_read(file_name)
     if n == 0:
         raise ValueError('The PDB file appears to be empty. :(')
-    hamiltonian = [[0]*n for _ in range(n)] #Instantiating the nxn matrix.
+    hamiltonian = [[0 for _ in range(n)] for _ in range(n)] #Instantiating the nxn matrix.
     #This will later be used for the Hamiltonian!
     for i in range(0,n):
-        hamiltonian[i][i] += woff+w_inhomogeneous*gasdev(idum) #look into gasdev later...
-    interaction(hamiltonian,vxd,vyd,vzd,x,y,z,n,name,subuoffset,subucumsum,prolist,istruct,protein)
+        hamiltonian[i][i] += woff+w_inhomogeneous*np.random.randn() #look into gasdev later...
+    vxd = [0 for _ in range(n)]
+    vyd = [0 for _ in range(n)]
+    vzd = [0 for _ in range(n)]
+    prolist = [0 for _ in range(n)]
+    hamiltonian,vxd,vyd,vzd,x,y,z,n,n,name,prolist,protein = \
+        interaction(hamiltonian,vxd,vyd,vzd,x,y,z,n,name,prolist,protein)
+    print hamiltonian
+    
         
 main_calculate('/Users/mschwart/vsfg-bellerephon/2chb.pdb')
 """
