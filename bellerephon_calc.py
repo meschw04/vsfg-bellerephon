@@ -166,8 +166,10 @@ def position_compare(position_nitrogen,position_carbon,atom_full_positions):
 #            print atom_full_positions
     return C_N_pairs
 """
-#x=matrix(1,n,1,5)
-#vxd=vector(1,n)
+amino_abbrev = ['ALA','ARG','ASN','ASP','ASX','CYS','GLU','GLN','GLX','GLY',\
+                'HIS','ILE','LEU','LYS','MET','PHE','PRO','SER','THR','TRP','TYR','VAL']
+
+
 def coordinate_read(file_name):
     data = open(file_name,'r').read()
     data = re.findall('ATOM.*',data)
@@ -178,44 +180,71 @@ def coordinate_read(file_name):
         try:
             int(i[1])
             atom_data.append(i)
-#            print i
         except (ValueError,IndexError):
             pass
-#    for i in atom_data:
-#        print i[6:9]
-    n=len(atom_data)
+    atom_data_adjusted = []
+    for i in atom_data:
+        if len(i) != 11:
+            for amino in amino_abbrev:
+                if amino in i[2]:
+                    atom_data_adjusted.append(i[:3] + [amino] + i[3:])
+        else:
+            atom_data_adjusted.append(i)
+
+    for i in atom_data_adjusted:
+        if len(i) != 11:
+            raise ValueError('Ran into an issue parsing the PDB. See: '+str(i))
     #In the x,y,z matrices defined below, we have the following:
     #   The first position is reserved for carbon atoms ('C')
     #   The second position is reserved for oxygen atoms ('O')
     #   The third position is reserved for nitrogen atoms ('N')
     #   The fourth position is reserved for the following: ('H','CN','HN')
     #   The fifth position is reserved for alpha carbon atoms ('CA')
-    x = [[0,0,0,0,0] for _ in range(n)]
-    y = [[0,0,0,0,0] for _ in range(n)]
-    z = [[0,0,0,0,0] for _ in range(n)]
-    for i in range(0,len(atom_data)):
-        if atom_data[i][2] == 'C':
-            x[i][0] = float(atom_data[i][6])
-            y[i][0] = float(atom_data[i][7])
-            z[i][0] = float(atom_data[i][8])
-        if atom_data[i][2] == 'O':
-            x[i][1] = float(atom_data[i][6])
-            y[i][1] = float(atom_data[i][7])
-            z[i][1] = float(atom_data[i][8])
-        if atom_data[i][2] == 'N':
-            x[i][2] = float(atom_data[i][6])
-            y[i][2] = float(atom_data[i][7])
-            z[i][2] = float(atom_data[i][8])
-        if atom_data[i][2] == 'H' or atom_data[i][2] == 'CN' \
-                    or atom_data[i][2] == 'HN':
-            x[i][3] = float(atom_data[i][6])
-            y[i][3] = float(atom_data[i][7])
-            z[i][3] = float(atom_data[i][8])
-        if atom_data[i][2] == 'CA':
-            x[i][4] = float(atom_data[i][6])
-            y[i][4] = float(atom_data[i][7])
-            z[i][4] = float(atom_data[i][8])
-    return atom_data,x,y,z,n
+    
+    #Take off the first incidence of C-O, take off the last incidence of N-H.
+    #Completely delete these atoms...this is where the PDB gets prepped.
+    #This has to be done for each of the chains.
+        
+    x = []
+    y = []
+    z = []
+    for i in range(0,len(atom_data_adjusted)-5):
+        if atom_data_adjusted[i][2] == 'C':
+            if atom_data_adjusted[i+1][2] == 'O':
+                if atom_data_adjusted[i+2][2] == 'N':
+                    if atom_data_adjusted[i+3][2] == 'H' or \
+                       atom_data_adjusted[i+3][2] == 'CN' or \
+                       atom_data_adjusted[i+3][2] == 'HN':
+                           if atom_data_adjusted[i+4][2] == 'CA':
+                               x_tmp = []
+                               y_tmp = []
+                               z_tmp = []
+                               
+                               x_tmp.append(float(atom_data_adjusted[i][6]))
+                               y_tmp.append(float(atom_data_adjusted[i][7]))
+                               z_tmp.append(float(atom_data_adjusted[i][8]))
+
+                               x_tmp.append(float(atom_data_adjusted[i+1][6]))
+                               y_tmp.append(float(atom_data_adjusted[i+1][7]))
+                               z_tmp.append(float(atom_data_adjusted[i+1][8]))
+
+                               x_tmp.append(float(atom_data_adjusted[i+2][6]))
+                               y_tmp.append(float(atom_data_adjusted[i+2][7]))
+                               z_tmp.append(float(atom_data_adjusted[i+2][8]))
+
+                               x_tmp.append(float(atom_data_adjusted[i+3][6]))
+                               y_tmp.append(float(atom_data_adjusted[i+3][7]))
+                               z_tmp.append(float(atom_data_adjusted[i+3][8]))
+
+                               x_tmp.append(float(atom_data_adjusted[i+4][6]))
+                               y_tmp.append(float(atom_data_adjusted[i+4][7]))
+                               z_tmp.append(float(atom_data_adjusted[i+4][8]))
+                               x.append(x_tmp)
+                               y.append(y_tmp)
+                               z.append(z_tmp)
+    n = len(x)
+
+    return atom_data_adjusted,x,y,z,n
 
 def dehydral(x1,x2,x3,x4,y1,y2,y3,y4,z1,z2,z3,z4):
     #"Dehydral" means dihedral in Dutch.
@@ -247,14 +276,13 @@ def dehydral(x1,x2,x3,x4,y1,y2,y3,y4,z1,z2,z3,z4):
 
 def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,protein):
     #CALCULATE THE DISPLACED ATOMS
-    print x[:5]
     amplitude=(10**10)*np.sqrt(h/(8*math.pi*math.pi*nma_freq*c*nma_mass*amu))
     xd = [[[0,0,0,0]]*n]*2
     yd = [[[0,0,0,0]]*n]*2
     zd = [[[0,0,0,0]]*n]*2
     sign = [0]*n
     for i in range(0,n):
-        vxCOrev = x_mode[0]-x_mode[1] #These modes are defined above!
+        vxCOrev = x_mode[0]-x_mode[1] #These modes are defined above (constants)!
         vyCOrev = y_mode[0]-y_mode[1]
         vzCOrev = z_mode[0]-z_mode[1]
         
@@ -270,7 +298,7 @@ def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,protein):
         vyCN = y[i][0] - y[i][2]
         vzCN = z[i][0] - z[i][2]
         
-        for j in range(0,4):
+        for j in range(0,4): #Fix the divide by zero here...there has to be a bypass on this somehow...
             a_CO = (x_der[j]*vxCOrev+y_der[j]*vzCOrev)/length_3d(vxCOrev,vyCOrev,vzCOrev)/length_3d(vxCO,vyCO,vzCO)
             a_CN = (x_der[j]*vxCNrev+y_der[j]*vzCNrev)/length_3d(vxCNrev,vyCNrev,vzCNrev)/length_3d(vxCN,vyCN,vzCN)
             if j == 1:
@@ -278,21 +306,21 @@ def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,protein):
             if a_CO>0:
                 sign[i] = -1
             if j != 0 and a_CO>0:
-                xd[0][i][j] = x[i][j]+amplitude/2*(a_CO*vxCO+a_CN*vxCN)
-                yd[0][i][j] = y[i][j]+amplitude/2*(a_CO*vyCO+a_CN*vyCN)
-                zd[0][i][j] = z[i][j]+amplitude/2*(a_CO*vzCO+a_CN*vzCN)
+                xd[0][i][j] = x[i][j]+(amplitude/2)*(a_CO*vxCO+a_CN*vxCN)
+                yd[0][i][j] = y[i][j]+(amplitude/2)*(a_CO*vyCO+a_CN*vyCN)
+                zd[0][i][j] = z[i][j]+(amplitude/2)*(a_CO*vzCO+a_CN*vzCN)
                 
-                xd[1][i][j] = x[i][j]-amplitude/2*(a_CO*vxCO+a_CN*vxCN)
-                yd[1][i][j] = y[i][j]-amplitude/2*(a_CO*vyCO+a_CN*vyCN)
-                zd[1][i][j] = z[i][j]-amplitude/2*(a_CO*vzCO+a_CN*vzCN)
+                xd[1][i][j] = x[i][j]-(amplitude/2)*(a_CO*vxCO+a_CN*vxCN)
+                yd[1][i][j] = y[i][j]-(amplitude/2)*(a_CO*vyCO+a_CN*vyCN)
+                zd[1][i][j] = z[i][j]-(amplitude/2)*(a_CO*vzCO+a_CN*vzCN)
             else:
-                xd[0][i][j] = x[i][j]-amplitude/2*(a_CO*vxCO+a_CN*vxCN)
-                yd[0][i][j] = y[i][j]-amplitude/2*(a_CO*vyCO+a_CN*vyCN)
-                zd[0][i][j] = z[i][j]-amplitude/2*(a_CO*vzCO+a_CN*vzCN)
+                xd[0][i][j] = x[i][j]-(amplitude/2)*(a_CO*vxCO+a_CN*vxCN)
+                yd[0][i][j] = y[i][j]-(amplitude/2)*(a_CO*vyCO+a_CN*vyCN)
+                zd[0][i][j] = z[i][j]-(amplitude/2)*(a_CO*vzCO+a_CN*vzCN)
                 
-                xd[1][i][j] = x[i][j]+amplitude/2*(a_CO*vxCO+a_CN*vxCN)
-                yd[1][i][j] = y[i][j]+amplitude/2*(a_CO*vyCO+a_CN*vyCN)
-                zd[1][i][j] = z[i][j]+amplitude/2*(a_CO*vzCO+a_CN*vzCN)
+                xd[1][i][j] = x[i][j]+(amplitude/2)*(a_CO*vxCO+a_CN*vxCN)
+                yd[1][i][j] = y[i][j]+(amplitude/2)*(a_CO*vyCO+a_CN*vyCN)
+                zd[1][i][j] = z[i][j]+(amplitude/2)*(a_CO*vzCO+a_CN*vzCN)
     #CALCULATE TRANSITION DIPOLES
     for i in range(0,n):
         for j in range(0,4):
@@ -303,7 +331,8 @@ def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,protein):
                     vyd[i] += sig*yd[l][i][j]*q*Debye
                     vzd[i] += sig*zd[l][i][j]*q*Debye
         if (vxd[i]**2 + vyd[i]**2 + vzd[i]**2)**0.5 > 0.4:
-            print 'Transition Dipole '+str(i)+'length is too long!'
+            #print 'Transition Dipole '+str(i)+'length is too long!'
+            pass
     #Transition dipoles are now calculated in vxd, vyd, and vzd.
     dipposx = []
     dipposy = []
@@ -320,10 +349,11 @@ def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,protein):
         dipposy.append(y[i][1]+(y[i][2]-y[i][1])*(0.868/len_CO))
         dipposz.append(z[i][1]+(z[i][2]-z[i][1])*(0.868/len_CO))
         if len_CO>1.3:
-            print 'The CO-length on '+str(i)+' is too long!'
+            #print 'The CO-length on '+str(i)+' is too long!'
+            pass
     for i in range(1,n):
         for j in range(0,n):
-            if j>i:
+            if j>=i:
                 pass
             else:
                 dipdist = ((dipposx[i]-dipposx[j])**2 + (dipposy[i]-dipposy[j])**2 + (dipposz[i]-dipposz[j])**2)**0.5
@@ -331,30 +361,31 @@ def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,protein):
                 dipvecy = dipposy[i]-dipposy[j]
                 dipvecz = dipposz[i]-dipposz[j]
                 if dipdist<0.2:
-                    print 'Distances too small in interaction at point '+str(i)+','+str(j)
+                    #print 'Distances too small in interaction at point '+str(i)+','+str(j)
+                    pass
                 hamiltonian[i][j] = 0
                 hamiltonian[i][j] += (((vxd[i]*vxd[j])+(vyd[i]*vyd[j])+(vzd[i]*vzd[j]))/pow(dipdist,3))\
                                        -3*((((dipvecx*vxd[i])+(dipvecy*vyd[i])+(dipvecz*vzd[i]))*\
                                         ((dipvecx*vxd[j])+(dipvecy*vyd[j])+(dipvecz*vzd[j])))/(pow(dipdist,5)))
                 hamiltonian[i][j] = hamiltonian[i][j]*5033
                 hamiltonian[j][i] = hamiltonian[i][j]
-    return hamiltonian,x,y,z,n,protein
+    return hamiltonian,vxd,vyd,vzd,x,y,z,n,protein
 
 def parameterizedB3LYP(hamiltonian,x,y,z,n):
     ph = []
     ps = []
-    for i in range(0,n):
-        phi=dehydral(x[i][1],x[i][3],x[i][5],x[i+1][1],y[i][1],y[i][3],y[i][5],y[i+1][1],z[i][1],z[i][3],z[i][5],z[i+1][1])
-        psi=dehydral(x[i][3],x[i][5],x[i+1][1],x[i+1][3],y[i][3],y[i][5],y[i+1][1],y[i+1][3],z[i][3],z[i][5],z[i+1][1],z[i+1][3])
+    for i in range(0,n-1):
+        phi=dehydral(x[i][0],x[i][2],x[i][4],x[i+1][0],y[i][0],y[i][2],y[i][4],y[i+1][0],z[i][0],z[i][2],z[i][4],z[i+1][0])
+        psi=dehydral(x[i][2],x[i][4],x[i+1][0],x[i+1][2],y[i][2],y[i][4],y[i+1][0],y[i+1][2],z[i][2],z[i][4],z[i+1][0],z[i+1][2])
         ph.append(phi)
         ps.append(psi)
         coupling = 0
         for k in range(0,7):
             for j in range(0,7):
-                coupling += coupling_par[j+1+(k*7)]*math.cos(j*psi/180*math.pi)*math.cos(k*phi/180*math.pi)
+                coupling += coupling_par[j+(k*7)]*math.cos(j*psi/180*math.pi)*math.cos(k*phi/180*math.pi)
         for k in range(0,6):
             for j in range(0,6):
-                coupling += coupling_par[j+49+((k-1)*5)]*math.sin(j*psi/180*math.pi)*math.sin(k*phi/180*math.pi)
+                coupling += coupling_par[j+48+((k-1)*5)]*math.sin(j*psi/180*math.pi)*math.sin(k*phi/180*math.pi)
         hamiltonian[i][i+1] = coupling
         hamiltonian[i+1][i] = coupling #Building diagonal-adjacents to the hamiltonian matrix!
     return hamiltonian,x,y,z,n
@@ -376,6 +407,7 @@ def HydrogenBond(hamiltonian,x,y,z,n,prolist): #See line 730 in template.c
                 hamiltonian[i][i]-=DonorHBshift1*(3.5-dist1)
             elif dist1<=2.6 and alpha<-np.cos(anglehydrogen/180*math.pi) and prolist[j]:
                 hamiltonian[j][j]-=ProlineHBshift1*(3.5-dist1)
+    return hamiltonian, x, y, z, n, prolist
                 
             
 
@@ -418,11 +450,28 @@ def main_calculate(file_name):
     vzd = [0 for _ in range(n)]
     prolist = [0 for _ in range(n)]
     hamiltonian,vxd,vyd,vzd,x,y,z,n,n,name,prolist,protein = \
-        interaction(hamiltonian,vxd,vyd,vzd,x,y,z,n,name,prolist,protein)
-    print hamiltonian
+        interaction(hamiltonian,vxd,vyd,vzd,x,y,z,n,name,prolist,protein,protocol='HydrogenBond')
+    return hamiltonian
     
         
-main_calculate('/Users/mschwart/vsfg-bellerephon/2chb.pdb')
+hamiltonian = main_calculate('/Users/mschwart/vsfg-bellerephon/sfg2/output.pdb')
+print hamiltonian
+
+import matplotlib.pyplot as plt
+fig = plt.figure(figsize=(8,8))
+plotted = plt.imshow(hamiltonian)
+fig.colorbar(plotted)
+plt.title('Heatmap of the PDB Hamiltonian')
+plt.show()
+
+abs_hamiltonian = [[abs(j) for j in i] for i in hamiltonian]
+fig = plt.figure(figsize=(8,8))
+plotted = plt.imshow(abs_hamiltonian)
+fig.colorbar(plotted)
+plt.title('Heatmap of the PDB Hamiltonian (abs. value)')
+plt.show()
+
+
 """
 amino_abbrev = ['ALA','ARG','ASN','ASP','ASX','CYS','GLU','GLN','GLX','GLY',\
                 'HIS','ILE','LEU','LYS','MET','PHE','PRO','SER','THR','TRP','TYR','VAL']
