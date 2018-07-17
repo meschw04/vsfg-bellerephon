@@ -1,1 +1,4 @@
-#vsfg-bellerephon
+# VSFG Bellerephon
+Vibrational Sum Frequency Generation (VSFG) is an experimental technique for measuring and differentiating between different orientations and conformations of interfacial proteins. Originally a method for calculating VSFG using molecular dynamics simulations was proposed by Roeters. The code leveraged both Matlab and C to calculate the theoretical responses for a number of individual simulated α-helix and β-sheet peptide secondary structures. The results of the VSFG show how the shape and locations of amide I responses change with differences in hydrogen bonding patterns, peptide orientations, and frequency generation polarization combinations. 
+
+While the approach by Roeters is a great method to compute individual peptide responses, the process was computationally expensive and required manual selection and iteration using downloaded .PDB files from the Protein Data Bank. This paper highlights the theory behind VSFG and introduces VSFG Bellerophon: a new, end-to-end streamlined method for high-throughput computation of VSFG spectra directly from the Protein Data Bank.
