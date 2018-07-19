@@ -68,12 +68,6 @@ nma_li = [0.483,   0.160,  -0.001,   0.603948,
           -0.03,   -0.07,    0.00,   -0.026049,
           -0.10,   -0.10,    0.00,    0.000135]
 
-#def f3tensor(nrl, nrh, ncl, nch, ndl, ndh):
-#    '''Allocates memory for a tensor of this size...'''
-#    return
-
-#    for (j=1;j<=4;j++) fscanf(file,"%f %f %f %f",&xmode[j],&ymode[j],&zmode[j],&qmode[j]);
-#    for (j=1;j<=4;j++) fscanf(file,"%f %f %f %f",&x_der[j],&y_der[j],&z_der[j],&q_der[j]);
 x_mode = [0.483,   0.385,  -0.616,   -0.492]
 y_mode = [0.160,   1.385,  -0.650,   -1.651]
 z_mode = [-0.001,   -0.000,  -0.010,   -0.020]
@@ -84,90 +78,15 @@ y_der = [0.73,   -0.43,  -0.07,   -0.10]
 z_der = [0.00,   0.00,  0.00,   0.00]
 q_der = [0.007716,   0.018198,  -0.026049,   0.000135]
 
+amino_abbrev = ['ALA','ARG','ASN','ASP','ASX','CYS','GLU','GLN','GLX','GLY',\
+                'HIS','ILE','LEU','LYS','MET','PHE','PRO','SER','THR','TRP','TYR','VAL']
+
 def length(x,y,z):
     return (float(x)**2 + float(y)**2 + float(z)**2)**0.5
 
 def length_3d(x,y,z):
     return (float(x)**2 + float(y)**2 + float(z)**2)**0.5
 
-
-"""
-def parse_pdb_file(file_name):
-    data = open(file_name,'r').read()
-    t = data[data.find('ATOM'):].split('\n')
-    header = t[0]
-    for i in range(0,len(t)):
-        t[i] = t[i].split(' ')
-    t = [[k for k in i if k!=''] for i in t if len(i)>5]
-#    chain_address = t[1][4]
-    for l in range(0,len(t)):
-        for j in range(0,len(t[l])):
-            try:
-                t[l][j] = float(t[l][j])
-            except ValueError:
-                pass
-    body = [i[:len(i)-3] for i in t]
-
-    for r in body:
-        del r[1]
-
-    return header,body,'A' #'A' is standing in for the chain address here!
-    
-
-def position_compare(position_nitrogen,position_carbon,atom_full_positions):
-    '''
-    if position_nitrogen == position_carbon:
-        C_N_pairs = []
-        for i in range(0,len(position_nitrogen)-1):
-            coord_m = atom_full_positions[position_nitrogen[i]]
-            coord_n = atom_full_positions[position_nitrogen[i+1]]
-            new_coord = [coord_m[0]-coord_n[0],\
-                         coord_m[1]-coord_n[1],\
-                         coord_m[2]-coord_n[2]]
-            C_N_pairs.append(new_coord)
-        return C_N_pairs
-    '''
-
-    C_N_pairs = []
-#    print(position_nitrogen,position_carbon) #N = oxygen, C = carbon
-    if len(position_nitrogen) == len(position_carbon):
-        for pos in range(0,len(position_nitrogen)):
-            n_atom = atom_full_positions[position_nitrogen[pos]]
-            c_atom = atom_full_positions[position_carbon[pos]]
-#            print(n_atom,position_nitrogen[pos])
-#            print(c_atom,position_carbon[pos])
-            C_N_pairs.append([c_atom[0]-n_atom[0],\
-                              c_atom[1]-n_atom[1],\
-                              c_atom[2]-n_atom[2]])
-    else:
-        try: #Added the TRY statement here to bypass errors temporarily! Remove later when parsing gets better!
-            for i in range(0,len(max(position_nitrogen,position_carbon))):
-                if abs(position_nitrogen[i]-position_carbon[i]) < 3:
-                    pass
-                else:
-                    if len(position_carbon) < len(position_nitrogen):
-                        del position_nitrogen[i]
-                    else:
-                        del position_carbon[i]
-            if len(position_nitrogen) != len(position_carbon):
-                if len(position_nitrogen) < len(position_carbon):
-                    del position_carbon[-1]
-                else:
-                    del position_nitrogen[-1]
-            for pos in range(0,len(position_nitrogen)):
-                n_atom = atom_full_positions[position_nitrogen[pos]]
-                c_atom = atom_full_positions[position_carbon[pos]]
-                C_N_pairs.append([c_atom[0]-n_atom[0],\
-                                  c_atom[1]-n_atom[1],\
-                                  c_atom[2]-n_atom[2]])
-        except:
-            print('')
-            print('Major parsing error in the PDB. Check it out!')
-#            print atom_full_positions
-    return C_N_pairs
-"""
-amino_abbrev = ['ALA','ARG','ASN','ASP','ASX','CYS','GLU','GLN','GLX','GLY',\
-                'HIS','ILE','LEU','LYS','MET','PHE','PRO','SER','THR','TRP','TYR','VAL']
 
 
 def coordinate_read(file_name):
@@ -281,6 +200,9 @@ def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,protein):
     yd = [[[0,0,0,0]]*n]*2
     zd = [[[0,0,0,0]]*n]*2
     sign = [0]*n
+    dipposx = []
+    dipposy = []
+    dipposz = []
     for i in range(0,n):
         vxCOrev = x_mode[0]-x_mode[1] #These modes are defined above (constants)!
         vyCOrev = y_mode[0]-y_mode[1]
@@ -293,12 +215,11 @@ def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,protein):
         vxCO = x[i][0] - x[i][1] #Recall that x,y,z are all function inputs.
         vyCO = y[i][0] - y[i][1]
         vzCO = z[i][0] - z[i][1]
-        
         vxCN = x[i][0] - x[i][2]
         vyCN = y[i][0] - y[i][2]
         vzCN = z[i][0] - z[i][2]
         
-        for j in range(0,4): #Fix the divide by zero here...there has to be a bypass on this somehow...
+        for j in range(0,4): #x_der is a constant, as as y_der
             a_CO = (x_der[j]*vxCOrev+y_der[j]*vzCOrev)/length_3d(vxCOrev,vyCOrev,vzCOrev)/length_3d(vxCO,vyCO,vzCO)
             a_CN = (x_der[j]*vxCNrev+y_der[j]*vzCNrev)/length_3d(vxCNrev,vyCNrev,vzCNrev)/length_3d(vxCN,vyCN,vzCN)
             if j == 1:
@@ -309,7 +230,6 @@ def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,protein):
                 xd[0][i][j] = x[i][j]+(amplitude/2)*(a_CO*vxCO+a_CN*vxCN)
                 yd[0][i][j] = y[i][j]+(amplitude/2)*(a_CO*vyCO+a_CN*vyCN)
                 zd[0][i][j] = z[i][j]+(amplitude/2)*(a_CO*vzCO+a_CN*vzCN)
-                
                 xd[1][i][j] = x[i][j]-(amplitude/2)*(a_CO*vxCO+a_CN*vxCN)
                 yd[1][i][j] = y[i][j]-(amplitude/2)*(a_CO*vyCO+a_CN*vyCN)
                 zd[1][i][j] = z[i][j]-(amplitude/2)*(a_CO*vzCO+a_CN*vzCN)
@@ -321,23 +241,18 @@ def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,protein):
                 xd[1][i][j] = x[i][j]+(amplitude/2)*(a_CO*vxCO+a_CN*vxCN)
                 yd[1][i][j] = y[i][j]+(amplitude/2)*(a_CO*vyCO+a_CN*vyCN)
                 zd[1][i][j] = z[i][j]+(amplitude/2)*(a_CO*vzCO+a_CN*vzCN)
-    #CALCULATE TRANSITION DIPOLES
-    for i in range(0,n):
-        for j in range(0,4):
-            for l in range(0,2):
-                for sig in range(-1,3):
-                    q = q_mode[j]+sign[i]*0.5*sig*q_der[j]
-                    vxd[i] += sig*xd[l][i][j]*q*Debye
-                    vyd[i] += sig*yd[l][i][j]*q*Debye
-                    vzd[i] += sig*zd[l][i][j]*q*Debye
+#    CALCULATE TRANSITION DIPOLES
+            for sig in range(-1,3):
+                q = q_mode[j]+sign[i]*0.5*sig*q_der[j]
+                vxd[i] = sig*(xd[0][i][j]+xd[1][i][j])*q*Debye
+                vyd[i] = sig*(yd[0][i][j]+yd[1][i][j])*q*Debye
+                vzd[i] = sig*(zd[0][i][j]+zd[1][i][j])*q*Debye
+        print [vxd[i],vyd[i],vzd[i]]
+        print (vxd[i]**2 + vyd[i]**2 + vzd[i]**2)**0.5
         if (vxd[i]**2 + vyd[i]**2 + vzd[i]**2)**0.5 > 0.4:
             #print 'Transition Dipole '+str(i)+'length is too long!'
             pass
-    #Transition dipoles are now calculated in vxd, vyd, and vzd.
-    dipposx = []
-    dipposy = []
-    dipposz = []
-    for i in range(0,n):
+        #Transition dipoles are now calculated in vxd, vyd, and vzd.
         vxCO = x[i][1]-x[i][2]
         vyCO = y[i][1]-y[i][2]
         vzCO = z[i][1]-z[i][2]
@@ -345,13 +260,17 @@ def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,protein):
         vyCN = y[i][1]-y[i][3]
         vzCN = z[i][1]-z[i][3]
         len_CO = (vxCO**2 + vyCO**2 + vzCO**2)**0.5
+        print 'len_CO = '+str(len_CO)
         dipposx.append(x[i][1]+(x[i][2]-x[i][1])*(0.868/len_CO))
         dipposy.append(y[i][1]+(y[i][2]-y[i][1])*(0.868/len_CO))
         dipposz.append(z[i][1]+(z[i][2]-z[i][1])*(0.868/len_CO))
         if len_CO>1.3:
             #print 'The CO-length on '+str(i)+' is too long!'
             pass
-    for i in range(1,n):
+    
+    
+    
+    for i in range(1,n):#Note: This is in range 1 to n, not 0 to n!
         for j in range(0,n):
             if j>=i:
                 pass
@@ -364,11 +283,11 @@ def transition_charges(hamiltonian,vxd,vyd,vzd,x,y,z,n,protein):
                     #print 'Distances too small in interaction at point '+str(i)+','+str(j)
                     pass
                 hamiltonian[i][j] = 0
-                hamiltonian[i][j] += (((vxd[i]*vxd[j])+(vyd[i]*vyd[j])+(vzd[i]*vzd[j]))/pow(dipdist,3))\
+                hamiltonian[i][j] += (((vxd[i]*vxd[j])+(vyd[i]*vyd[j])+(vzd[i]*vzd[j]))/(dipdist**3))\
                                        -3*((((dipvecx*vxd[i])+(dipvecy*vyd[i])+(dipvecz*vzd[i]))*\
-                                        ((dipvecx*vxd[j])+(dipvecy*vyd[j])+(dipvecz*vzd[j])))/(pow(dipdist,5)))
+                                        ((dipvecx*vxd[j])+(dipvecy*vyd[j])+(dipvecz*vzd[j])))/((dipdist**5)))
                 hamiltonian[i][j] = hamiltonian[i][j]*5033
-                hamiltonian[j][i] = hamiltonian[i][j]
+                hamiltonian[j][i] = hamiltonian[i][j] #Where the non-coupled diagonals are calculated...
     return hamiltonian,vxd,vyd,vzd,x,y,z,n,protein
 
 def parameterizedB3LYP(hamiltonian,x,y,z,n):
@@ -384,9 +303,9 @@ def parameterizedB3LYP(hamiltonian,x,y,z,n):
             for j in range(0,7):
                 coupling += coupling_par[j+(k*7)]*math.cos(j*psi/180*math.pi)*math.cos(k*phi/180*math.pi)
         for k in range(0,6):
-            for j in range(0,6):
+            for j in range(0,6): #Check the nearest neighbor couplings...
                 coupling += coupling_par[j+48+((k-1)*5)]*math.sin(j*psi/180*math.pi)*math.sin(k*phi/180*math.pi)
-        hamiltonian[i][i+1] = coupling
+        hamiltonian[i][i+1] = coupling #This is the nearest neighbor coupling
         hamiltonian[i+1][i] = coupling #Building diagonal-adjacents to the hamiltonian matrix!
     return hamiltonian,x,y,z,n
 
@@ -455,21 +374,26 @@ def main_calculate(file_name):
     
         
 hamiltonian = main_calculate('/Users/mschwart/vsfg-bellerephon/sfg2/output.pdb')
-print hamiltonian
+#print hamiltonian
 
 import matplotlib.pyplot as plt
-fig = plt.figure(figsize=(8,8))
-plotted = plt.imshow(hamiltonian)
+fig = plt.figure(figsize=(4,4))
+
+l = []
+for k in hamiltonian[:25]:
+    l.append(k[:25])
+
+plotted = plt.imshow(l)
 fig.colorbar(plotted)
 plt.title('Heatmap of the PDB Hamiltonian')
 plt.show()
 
-abs_hamiltonian = [[abs(j) for j in i] for i in hamiltonian]
-fig = plt.figure(figsize=(8,8))
-plotted = plt.imshow(abs_hamiltonian)
-fig.colorbar(plotted)
-plt.title('Heatmap of the PDB Hamiltonian (abs. value)')
-plt.show()
+#abs_hamiltonian = [[abs(j) for j in i] for i in hamiltonian]
+#fig = plt.figure(figsize=(8,8))
+#plotted = plt.imshow(abs_hamiltonian)
+#fig.colorbar(plotted)
+#plt.title('Heatmap of the PDB Hamiltonian (abs. value)')
+#plt.show()
 
 
 """
@@ -517,3 +441,29 @@ def parse_pdb_file(file_name):
 parse_pdb_file('/Users/mschwart/vsfg-bellerephon/2chb.pdb')
 
 """
+
+haa_file = '/Users/mschwart/vsfg-bellerephon/sfg2/output_prepped_haa.txt'
+t = open(haa_file,'rb').read()
+q = t.split('\n')
+p = []
+for i in q:
+    j = []
+    for l in i.split(' '):
+        try:
+            j.append(float(l))
+        except:
+            pass
+    p.append(j)
+p = p[:len(p)-1]
+
+o = []
+for i in p[:25]:
+    o.append(i[:25])
+
+fig = plt.figure(figsize=(4,4))
+plotted = plt.imshow(o)
+fig.colorbar(plotted)
+plt.title('Heatmap of the PDB Hamiltonian (abs. value)')
+plt.show()
+
+
